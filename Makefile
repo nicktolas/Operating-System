@@ -1,6 +1,6 @@
 arch ?= x86_64
 kernel := build/doors-$(arch).bin
-fat32 := build/os-$(arch).img
+fat32 := build/doors-$(arch).img
 loopa = /dev/loop30
 loopb = /dev/loop31
 linker_script := src/arch/$(arch)/linker.ld
