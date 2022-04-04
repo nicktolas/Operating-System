@@ -18,12 +18,12 @@ loop:
 	@sudo losetup -d $(loopb)
 
 clean:
-	@rm -r build
+	@sudo rm -f -r build
 	@rm doors.img
 	@sudo rm -r /mnt/fatgrub
 
-run: $(fat32)
-	@qemu-system-x86_64 doors.img
+run: $(clean) $(fat32)
+	@qemu-system-x86_64 -drive file=doors.img,format=raw
 	
 fat32: $(fat32)
 
@@ -43,16 +43,21 @@ $(fat32): $(kernel) $(grub_cfg)
 
 # Place Grub at start of disk
 	@echo "Placing Grub"
+	@sudo mkdir /mnt/fatgrub
 	@sudo mount $(loopb) /mnt/fatgrub
 	@sudo grub-install --root-directory=/mnt/fatgrub --no-floppy --modules="normal part_msdos ext2 multiboot" $(loopa)
 
 # Place Kernel at 1MB offset
-	@echo "Placing Kernel"
-	@sudo cp $(kernel) $(loopb)
+	@echo "Placing Kernel and related files"
+	@sudo mkdir build/boot
+	@sudo mkdir build/boot/grub
+	@sudo cp $(kernel) build/boot
+	@sudo cp $(grub_cfg) build/boot/grub
+	@sudo cp -r build/boot /mnt/fatgrub
 
 # Place grub info
-	@echo 'Placing Grub'
-	@
+# @echo 'Placing Grub'
+# @
 
 # unmount our loopbacks
 	@sudo umount /mnt/fatgrub
