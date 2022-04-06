@@ -25,11 +25,11 @@ loop:
 
 clean:
 	@sudo rm -f -r build
-	@rm doors.img
 	@sudo rm -r /mnt/fatgrub
+	@rm doors.img
 
 run: $(clean) $(fat32)
-	@qemu-system-x86_64 -s -drive file=doors.img,format=raw 
+	@qemu-system-x86_64 -s -drive file=doors.img,format=raw
 	
 fat32: $(fat32)
 
