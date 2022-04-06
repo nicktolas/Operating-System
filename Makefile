@@ -7,9 +7,10 @@ linker_script := src/arch/$(arch)/linker.ld
 grub_cfg := src/arch/$(arch)/grub.cfg
 cfiles := src/arch/$(arch)/*.c
 gcc := x86_64-elf-gcc
-gcc_flags := -g -Wall -Werror -c
+gcc_flags := -g -Wall -Werror
 assembly_source_files := $(wildcard src/arch/$(arch)/*.asm)
 c_source_files := $(wildcard src/arch/$(arch)/*.c)
+c_header_files := $(wildcard src/arch/$(arch)/*.h)
 c_object_files := $(patsubst src/arch/$(arch)/%.c, \
 	build/arch/$(arch)/%.o, $(c_source_files))
 assembly_object_files := $(patsubst src/arch/$(arch)/%.asm, \
@@ -79,7 +80,7 @@ $(fat32): $(kernel) $(grub_cfg)
 # @rm -r build/fat32files
 
 $(kernel): $(assembly_object_files) $(c_object_files) $(linker_script)
-	@x86_64-elf-ld -n -T $(linker_script) -o $(kernel) $(assembly_object_files) $(c_object_files)
+	@x86_64-elf-ld -n -T $(linker_script) -o $(kernel) $(assembly_object_files) $(c_object_files) 
 
 
 # compile assembly files
@@ -90,4 +91,4 @@ build/arch/$(arch)/%.o: src/arch/$(arch)/%.asm
 # compile c files
 build/arch/$(arch)/%.o: src/arch/$(arch)/%.c
 	@mkdir -p $(shell dirname $@)
-	@$(gcc) $(gcc_flags) $< -o $@
+	@$(gcc) $(gcc_flags) -c $<  -o $@ 
