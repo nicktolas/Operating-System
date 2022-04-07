@@ -3,7 +3,8 @@
 
 static unsigned short *vgaBuff = (unsigned short*) K_VGA_BASE_ADDR;
 static int vga_width = 80;
-// static int vga_height = 20;
+static int vga_height = 25;
+static int vga_cursor_row = 0;
 static int vga_cursor = 0;
 static unsigned char vga_color = (K_VGA_COLOR_LGREY | (K_VGA_COLOR_BLACK << 4));
 
@@ -17,13 +18,44 @@ void set_VGA_color(unsigned int foreground, unsigned int background)
 // Prints the provided character to current position in the VGA console. 
 void VGA_display_char(char c)
 {
-    vgaBuff[vga_cursor] = (vga_color << 8) | c;
-    if ((vga_cursor % vga_width) < (vga_width -1))
+    if(c == '\n')
     {
-        vga_cursor++;
+        vga_cursor_row++;
+        // add scrolling
+    }
+    else if(c == '\r')
+    {
+        vga_cursor = 0;
+    }
+    else
+    {
+        vgaBuff[vga_cursor+(vga_cursor_row*80)] = (vga_color << 8) | c;
+        if (vga_cursor < vga_width-1)
+        {
+            vga_cursor++;
+        }
+        else // vga cursor is at the end of the line
+        { 
+            vga_cursor_row++;
+            vga_cursor = 0;
+
+        }
     }
     return;
 }
+
+// Scroll the window up if there is no room left to display on.
+void scroll_vga_window_up()
+{
+    if (vga_cursor_row < vga_height-1)
+    {
+        return;
+    }
+    memcpy(vgaBuff[0], vgaBuff[vga_width], vga_width*(vga_height-1)*2);
+    VGA_clear_row(vga_height-1);
+    return;
+}
+
 
 // Prints the provided characters in the string to the VGA console.
 void VGA_display_str(const char *provided_string)
@@ -38,12 +70,7 @@ void VGA_display_str(const char *provided_string)
     return;
 }
 
-// Clears the VGA console completely
-void VGA_clear(void)
-{
-    memset((void*) K_VGA_BASE_ADDR, 0, 4000);
-    return;
-}
+
 
 //Sets the Doors OS background
 void VGA_background(void)
@@ -115,12 +142,39 @@ void VGA_background(void)
     return;
 }
 
+// Clears the VGA console completely
+void VGA_clear(void)
+{
+    int i;
+    set_VGA_color(K_VGA_COLOR_LGREY, K_VGA_COLOR_BLACK);
+    vga_cursor = 0;
+    for(i=0; i < (vga_height * vga_width); i++)
+    {
+        VGA_display_char(' ');
+    }
+    vga_cursor = 0;
+    vga_cursor_row = 0;
+    return;
+}
+
 // Clears the specfied row (0-24) on the VGA console (25x80)
 void VGA_clear_row(int row)
 {
-    // 
-    short* base_addr = (short*) K_VGA_BASE_ADDR + (row*80);
-    memset((void*) base_addr, 0, 80*2);
+    int i;
+    int curr_row;
+    unsigned char old_color = vga_color;
+    set_VGA_color(K_VGA_COLOR_LGREY, K_VGA_COLOR_BLACK);
+    curr_row = vga_cursor_row;
+    vga_cursor_row = row;
+    vga_cursor = 0;
+
+    for(i=0; i < (vga_width); i++)
+    {
+        VGA_display_char(' ');
+    }
+    vga_cursor = 0;
+    vga_cursor_row = curr_row;
+    vga_color = old_color;
     return;
 }
 
@@ -146,4 +200,15 @@ void * memset(void *dst, int c, size_t n)
         curr_pos++;
     }
     return dst; 
+}
+
+// Copys n bytes of memory from dst to src. 
+void *memcpy(void *restrict dest, const void *restrict src, size_t n)
+{
+    int i; 
+    for(i=0: i < n; i++)
+    {
+        (char*)dest[i] = (char*)src[i];
+    }
+    return dest;
 }
