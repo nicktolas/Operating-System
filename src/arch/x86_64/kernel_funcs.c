@@ -8,6 +8,9 @@ static int vga_cursor_row = 0;
 static int vga_cursor = 0;
 static unsigned char vga_color = (K_VGA_COLOR_LGREY | (K_VGA_COLOR_BLACK << 4));
 
+
+// ------------------------------- VGA Functions -----------------------------------
+
 // Sets the color the VGA console is currently operating with
 void set_VGA_color(unsigned int foreground, unsigned int background)
 {
@@ -21,7 +24,7 @@ void VGA_display_char(char c)
     if(c == '\n')
     {
         vga_cursor_row++;
-        // add scrolling
+        scroll_vga_window_up();
     }
     else if(c == '\r')
     {
@@ -47,12 +50,13 @@ void VGA_display_char(char c)
 // Scroll the window up if there is no room left to display on.
 void scroll_vga_window_up()
 {
-    if (vga_cursor_row < vga_height-1)
+    if (vga_cursor_row < vga_height)
     {
         return;
     }
-    memcpy(vgaBuff[0], vgaBuff[vga_width], vga_width*(vga_height-1)*2);
+    memcpy((void*)vgaBuff, (void*)(vgaBuff+vga_width), vga_width*(vga_height-1)*2);
     VGA_clear_row(vga_height-1);
+    vga_cursor_row--;
     return;
 }
 
@@ -177,6 +181,29 @@ void VGA_clear_row(int row)
     vga_color = old_color;
     return;
 }
+// -------------------------- String Functions --------------------------------------
+
+int printk(const char *fmt, ...)
+{
+    // int i;
+    char* substring;
+    va_list args_list;
+    substring = strtok(fmt, '%');
+    VGA_display_str(substring);
+    substring = strtok(NULL, '%');
+    while(substring != NULL)
+    {
+        // skip over first character (character after % delimiter)
+        VGA_display_str(substring+1);
+        // Call respective function (switch statement) substring[0]
+        // switch (substring[0])
+        // sets the substring and null terminates the string
+        substring = strtok(NULL, '%');
+    }
+    va_end(args_list);
+    return 0;
+}
+// } __attribute__ ((format (printf, 1, 2)));
 
 // Takes a string and returns a size_t representing then number of characters in the string excluding the terminating null byte.
 size_t strlen(const char *provided_string)
@@ -188,6 +215,73 @@ size_t strlen(const char *provided_string)
     }
     return length+1;
 }
+
+// Returns the pointer to the first occurance of character c in the string str
+const char* strchr(const char *str, int c)
+{
+    int i;
+    for(i=0; i < strlen(str); i++)
+    {
+        if(str[i] == c)
+        {
+            return str+i;
+        }
+    }
+    return NULL;
+}
+
+/* Copys n characters from string src to string dest.
+If n exeeds the length of src, then function returns NULL.
+n should not include the NULL byte that ends the string in src. 
+This function will add the NULL byte at the end of dest.*/
+char *strncpy(char *restrict dest, const char *restrict src, size_t n)
+{
+    if(n > strlen(src))
+    {
+        return NULL;
+    }
+    memcpy((void*)dest, (void*)src, n);
+    dest[n] = '\0';
+    return dest;
+}
+
+
+/* Different than the unistd strtok.
+   str takes a given character pointer string and a character pointer delimiter and
+   separates the string into null terminated substrings that are split by the delimiting character. 
+
+   For reach all substrings of the split string, call strtok with the NULL parameter after the original strtok(provided string, delimit).
+   Changing the delimiter after the intial call will continue off the next substring. 
+
+   Note: This function modifies in place the provided string. All delmiited characters are replaced with a null terminating byte representing
+   the end of the substring. The provided string should be within scope of the strtok function usage throughout its usage. This is to accomodate a no memory allocation requirement. 
+*/
+char* strtok(char *str, int delim)
+{
+    static char* token;
+    char* found_char = NULL;
+    char* return_token;
+    // intial call
+    if(str != NULL)
+    {
+        token = str;
+    }
+    found_char = strchr(token, delim);
+    if(found_char == NULL)
+    {
+        token = NULL;
+        return_token = NULL;
+    }
+    else
+    {
+        token[(int)(found_char-token)] = '\0';
+        return_token = token;
+        token = found_char+1; 
+    }
+    return return_token;
+}
+
+// --------------------------- Memory Manipulation Functions -----------------------------------
 
 // Sets n bytes of memory to c starting at location defined by dst
 void * memset(void *dst, int c, size_t n)
@@ -202,13 +296,13 @@ void * memset(void *dst, int c, size_t n)
     return dst; 
 }
 
-// Copys n bytes of memory from dst to src. 
+// // Copys n bytes of memory from dst to src. 
 void *memcpy(void *restrict dest, const void *restrict src, size_t n)
 {
     int i; 
-    for(i=0: i < n; i++)
+    for(i=0; i < n; i++)
     {
-        (char*)dest[i] = (char*)src[i];
+        ((char*)dest)[i] = ((char*)src)[i];
     }
     return dest;
 }

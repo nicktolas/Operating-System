@@ -25,9 +25,14 @@ void VGA_display_str(const char *provided_string);
 void VGA_clear(void);
 void VGA_background(void);
 void VGA_clear_row(int row);
+void scroll_vga_window_up(void);
 
 // String Functions
+int printk(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 size_t strlen(const char *provided_string);
+const char* strchr(const char *str, int c);
+char* strtok(char *str, char delim);
+char *strncpy(char *restrict dest, const char *restrict src, size_t n);
 
 // Memory Manipulation
 void * memset(void *dst, int c, size_t n);
