@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "doors_string.h": "c",
+        "kernel_funcs.h": "c"
+    }
+}
