@@ -18,6 +18,7 @@ void kmain(void)
     keyboard_init();
 
     // test_printk();
+    // test_printk();
     test_keyboard();
     
     while(1)

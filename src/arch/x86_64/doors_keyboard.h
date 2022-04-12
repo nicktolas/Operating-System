@@ -33,8 +33,10 @@ uint8_t inb(uint16_t port);
 void outb(uint16_t port, uint8_t val);
 char ps2_poll_read(void);
 void ps2_poll(void);
+void ps2_poll_write(void);
 void keyboard_init(void);
 void keyboard_loop(void);
 void parse_byte(char byte_read);
+
 
 #endif

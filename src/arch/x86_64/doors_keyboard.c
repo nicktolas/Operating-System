@@ -19,13 +19,15 @@ void keyboard_init(void)
     read_status = inb(PS2_DATA);
     curr_ps_config->PS2_second_port_clk = 0;
     curr_ps_config->PS2_second_port_int = 0;
-    curr_ps_config->PS2_first_port_clk = 1;
-    curr_ps_config->PS2_first_port_int = 1;
-    ps2_poll();
+    curr_ps_config->PS2_first_port_clk = 0;
+    curr_ps_config->PS2_first_port_int = 0;
+    outb(PS2_CMD, PS2_DATA);
     outb(PS2_DATA, read_status);
+    ps2_poll();
     outb(PS2_CMD, PS2_RESET);
     printk("Reset status: %x\r\n", ps2_poll_read());
     outb(PS2_DATA, SC2_PRESSED_F);
+    // set scan 0x55 keep going
     outb(PS2_CMD, PS2_CONTROLLER_PORT_FIRST_ENABLE);
     return;
 }
@@ -65,6 +67,16 @@ void ps2_poll(void)
 {
     char status = inb(PS2_STATUS);
     while (!(status & PS2_STATUS_OUTPUT))
+    {
+        status = inb(PS2_STATUS);
+    }
+    return;
+}
+
+void ps2_poll_write(void)
+{
+    char status = inb(PS2_STATUS);
+    while(!(status & PS2_STATUS_INPUT))
     {
         status = inb(PS2_STATUS);
     }
