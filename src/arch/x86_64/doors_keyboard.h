@@ -2,6 +2,7 @@
 #define DOORS_KEYBOARD
 #define PS2_DATA 0x60
 #define PS2_CMD 0x64
+#define PS2_RESET 0xFF
 #define PS2_STATUS PS2_CMD
 #define PS2_STATUS_OUTPUT 1
 #define PS2_STATUS_INPUT (1 << 1)
@@ -11,6 +12,7 @@
 #define PS2_CONTROLLER_PORT_SECOND_ENABLE 0xA8
 #define PS2_CONTROLLER_BYTE_ZERO 0x20
 
+#define SC2_PRESSED_F 0x2B
 /*
     Struct for configuring the PS/2 Controller. 
     PS2_zero_one/two must be set to zero by user.
@@ -27,8 +29,12 @@ struct PS_Controller_Config
     uint8_t PS2_zero_two:1;
 }__attribute__((packed));
 
-static inline uint8_t inb(uint16_t port);
-static inline void outb(uint16_t port, uint8_t val);
-static char ps2_poll_read(void);
+uint8_t inb(uint16_t port);
+void outb(uint16_t port, uint8_t val);
+char ps2_poll_read(void);
 void ps2_poll(void);
+void keyboard_init(void);
+void keyboard_loop(void);
+void parse_byte(char byte_read);
+
 #endif

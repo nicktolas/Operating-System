@@ -1,26 +1,57 @@
 #include "kernel.h"
 #include "kernel_funcs.h"
 #include "doors_keyboard.h"
+#include "doors_string.h"
+
 
 void keyboard_init(void)
 {
     struct PS_Controller_Config* curr_ps_config;
-
+    uint8_t read_status;
     // Send config to disable Port 1 and 2
-    outb(PS2_DATA, PS2_CONTROLLER_PORT_FIRST_DISABLE);
+    outb(PS2_CMD, PS2_CONTROLLER_PORT_FIRST_DISABLE);
+    // ps2_poll();
+    outb(PS2_CMD, PS2_CONTROLLER_PORT_SECOND_DISABLE);
+    outb(PS2_CMD, PS2_CONTROLLER_BYTE_ZERO);
     ps2_poll();
-    outb(PS2_DATA, PS2_CONTROLLER_PORT_SECOND_DISABLE);
-    // Enable clock and interupts of port 1. 
-    curr_ps_config = (struct PS_Controller_Config*) inb(PS2_CONTROLLER_BYTE_ZERO);
+    // Enable clock and interupts of port 1.
+    curr_ps_config = (struct PS_Controller_Config*) &read_status;
+    read_status = inb(PS2_DATA);
     curr_ps_config->PS2_second_port_clk = 0;
     curr_ps_config->PS2_second_port_int = 0;
     curr_ps_config->PS2_first_port_clk = 1;
     curr_ps_config->PS2_first_port_int = 1;
     ps2_poll();
-    outb(PS2_DATA, (char) curr_ps_config);
+    outb(PS2_DATA, read_status);
+    outb(PS2_CMD, PS2_RESET);
+    printk("Reset status: %x\r\n", ps2_poll_read());
+    outb(PS2_DATA, SC2_PRESSED_F);
+    outb(PS2_CMD, PS2_CONTROLLER_PORT_FIRST_ENABLE);
+    return;
 }
 
-static char ps2_poll_read(void)
+void keyboard_loop(void)
+{
+    int hold = 1;
+    char byte_read;
+    while(hold)
+    {
+        byte_read = ps2_poll_read();
+        parse_byte(byte_read);
+    }
+    return;
+}
+
+void parse_byte(char byte_read)
+{
+    if(byte_read == SC2_PRESSED_F)
+    {
+        printk("f");
+    }
+    return;
+}
+
+char ps2_poll_read(void)
 {
     char status = inb(PS2_STATUS);
     while (!(status & PS2_STATUS_OUTPUT))
@@ -40,7 +71,7 @@ void ps2_poll(void)
     return;
 }
 
-static inline uint8_t inb(uint16_t port)
+uint8_t inb(uint16_t port)
 {
     uint8_t ret;
     asm volatile ( "inb %1, %0"
@@ -49,7 +80,8 @@ static inline uint8_t inb(uint16_t port)
     return ret;
 }
 
-static inline void outb(uint16_t port, uint8_t val)
+void outb(uint16_t port, uint8_t val)
 {
     asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+    return;
 }

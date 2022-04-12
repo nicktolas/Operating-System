@@ -14,6 +14,9 @@ void kmain(void)
     while(hold){;}
 
     VGA_clear();
+
+    keyboard_init();
+
     // test_printk();
     test_keyboard();
     
