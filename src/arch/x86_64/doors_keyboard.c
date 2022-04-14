@@ -1,5 +1,6 @@
 #include "kernel.h"
-#include "kernel_funcs.h"
+#include "kernel_memory.h"
+#include "kernel_vga.h"
 #include "doors_keyboard.h"
 #include "doors_string.h"
 

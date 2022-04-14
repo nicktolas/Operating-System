@@ -1,5 +1,5 @@
 #include "kernel.h"
-#include "kernel_funcs.h"
+#include "kernel_vga.h"
 #include "doors_string.h"
 #include "kernel_testing.h"
 #include "doors_keyboard.h"
@@ -17,9 +17,10 @@ void kmain(void)
 
     keyboard_init();
 
+    interrupts_init();
+
     // test_printk();
-    // test_printk();
-    test_keyboard();
+    // test_keyboard();
     
     while(1)
     {

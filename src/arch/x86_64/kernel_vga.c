@@ -1,6 +1,7 @@
 #include "kernel.h"
-#include "kernel_funcs.h"
+#include "kernel_memory.h"
 #include "doors_string.h"
+#include "kernel_vga.h"
 
 static unsigned short *vgaBuff = (unsigned short*) K_VGA_BASE_ADDR;
 static int vga_width = 80;
@@ -8,9 +9,6 @@ static int vga_height = 25;
 static int vga_cursor_row = 0;
 static int vga_cursor = 0;
 static unsigned char vga_color = (K_VGA_COLOR_LGREY | (K_VGA_COLOR_BLACK << 4));
-
-
-// ------------------------------- VGA Functions -----------------------------------
 
 // Sets the color the VGA console is currently operating with
 void set_VGA_color(unsigned int foreground, unsigned int background)
@@ -190,30 +188,4 @@ void VGA_clear_row(int row)
     vga_cursor_row = curr_row;
     vga_color = old_color;
     return;
-}
-
-// --------------------------- Memory Manipulation Functions -----------------------------------
-
-// Sets n bytes of memory to c starting at location defined by dst
-void * memset(void *dst, int c, size_t n)
-{
-    int i;
-    char* curr_pos = (char*)dst;
-    for (i=0;i<n;i++)
-    {
-        curr_pos[i] = c;
-        curr_pos++;
-    }
-    return dst; 
-}
-
-// // Copys n bytes of memory from dst to src. 
-void *memcpy(void *restrict dest, const void *restrict src, size_t n)
-{
-    int i; 
-    for(i=0; i < n; i++)
-    {
-        ((char*)dest)[i] = ((char*)src)[i];
-    }
-    return dest;
 }

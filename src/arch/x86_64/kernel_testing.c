@@ -1,7 +1,7 @@
 #include "kernel.h"
-#include "kernel_funcs.h"
 #include "doors_string.h"
-#include "kernel_funcs.h"
+#include "kernel_memory.h"
+#include "kernel_vga.h"
 #include "doors_keyboard.h"
 
 void test_printk(void)
