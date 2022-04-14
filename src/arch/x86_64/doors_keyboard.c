@@ -5,7 +5,8 @@
 
 static bool pressed_list[300] = {0};
 static bool capslock;
-static bool shift; 
+static bool r_shift;
+static bool l_shift;
 static bool secondary;
 
 void keyboard_init(void)
@@ -14,7 +15,6 @@ void keyboard_init(void)
     uint8_t read_status;
     // Send config to disable Port 1 and 2
     ps2_write_CMD(PS2_CONTROLLER_PORT_FIRST_DISABLE);
-    // ps2_poll();
     ps2_write_CMD(PS2_CONTROLLER_PORT_SECOND_DISABLE);
     // Flush the output buffer
     inb(PS2_DATA);
@@ -58,8 +58,11 @@ void keyboard_loop(void)
     int hold = 1;
     char byte_read;
     capslock = false;
-    shift = false; 
+    l_shift = false; 
+    r_shift = false;
     secondary = false;
+    // consume garbage
+    byte_read = ps2_poll_read();
     while(hold)
     {
         byte_read = ps2_poll_read();
@@ -73,85 +76,190 @@ void parse_byte(uint8_t byte_read)
     switch(byte_read)
     {
         case F1_KEY:
-            process_char(F1_KEY, "<F1>", shift, capslock);
+            process_char(F1_KEY, "<F1>");
             break;
         case F2_KEY:
-            process_char(F2_KEY, "<F2>", shift, capslock);
+            process_char(F2_KEY, "<F2>");
             break;
         case F3_KEY:
-            process_char(F3_KEY, "<F3>", shift, capslock);
+            process_char(F3_KEY, "<F3>");
             break;
         case F4_KEY:
-            process_char(F4_KEY, "<F4>", shift, capslock);
+            process_char(F4_KEY, "<F4>");
             break;
         case F5_KEY:
-            process_char(F5_KEY, "<F5>", shift, capslock);
+            process_char(F5_KEY, "<F5>");
             break;
         case F6_KEY:
-            process_char(F6_KEY, "<F6>", shift, capslock);
+            process_char(F6_KEY, "<F6>");
             break;
         case F7_KEY:
-            process_char(F7_KEY, "<F7>", shift, capslock);
+            process_char(F7_KEY, "<F7>");
             break;
         case F8_KEY:
-            process_char(F8_KEY, "<F8>", shift, capslock);
+            process_char(F8_KEY, "<F8>");
             break;
         case F9_KEY:
-            process_char(F9_KEY, "<F9>", shift, capslock);
+            process_char(F9_KEY, "<F9>");
             break;
         case F10_KEY:
-            process_char(F10_KEY, "<F10>", shift, capslock);
+            process_char(F10_KEY, "<F10>");
             break;
         case F11_KEY:
-            process_char(F11_KEY, "<F11>", shift, capslock);
+            process_char(F11_KEY, "<F11>");
             break;
         case F12_KEY:
-            process_char(F12_KEY, "<F12>", shift, capslock);
+            process_char(F12_KEY, "<F12>");
             break;
         case _0_KEY:
-            process_char(_0_KEY, "0", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(_0_KEY, ")");
+            }
+            else
+            {
+                process_char(_0_KEY, "0");
+            }
             break;
         case _1_KEY:
-            process_char(_1_KEY, "1", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(_1_KEY, "!");
+            }
+            else
+            {
+                process_char(_1_KEY, "1");
+            }
             break;
         case _2_KEY:
-            process_char(_2_KEY, "2", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(_2_KEY, "@");
+            }
+            else
+            {
+                process_char(_2_KEY, "2");
+            }
             break;
         case _3_KEY:
-            process_char(_3_KEY, "3", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(_3_KEY, "#");
+            }
+            else
+            {
+                process_char(_3_KEY, "3");
+            }
             break;
         case _4_KEY:
-            process_char(_4_KEY, "4", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(_4_KEY, "$");
+            }
+            else
+            {
+                process_char(_4_KEY, "4");
+            }
             break;
         case _5_KEY:
-            process_char(_5_KEY, "5", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(_5_KEY, "%%");
+            }
+            else
+            {
+                process_char(_5_KEY, "5");
+            }
             break;
         case _6_KEY:
-            process_char(_6_KEY, "6", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(_6_KEY, "^");
+            }
+            else
+            {
+                process_char(_6_KEY, "6");
+            }
             break;
         case _7_KEY:
-            process_char(_7_KEY, "7", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(_7_KEY, "&");
+            }
+            else
+            {
+                process_char(_7_KEY, "7");
+            }
             break;
         case _8_KEY:
-            process_char(_8_KEY, "8", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(_8_KEY, "*");
+            }
+            else
+            {
+                process_char(_8_KEY, "8");
+            }
             break;
         case _9_KEY:
-            process_char(_9_KEY, "9", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(_9_KEY, "(");
+            }
+            else
+            {
+                process_char(_9_KEY, "9");
+            }
             break;
         case MINUS_KEY:
-            process_char(MINUS_KEY, "-", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(MINUS_KEY, "_");
+            }
+            else
+            {
+                process_char(MINUS_KEY, "-");
+            }
             break;
         case EQ_KEY:
-            process_char(EQ_KEY, "=", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(EQ_KEY, "+");
+            }
+            else
+            {
+                process_char(EQ_KEY, "=");
+            }
             break;
         case SEMICOLON_KEY:
-            process_char(SEMICOLON_KEY, ";", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(SEMICOLON_KEY, ":");
+            }
+            else
+            {
+                process_char(SEMICOLON_KEY, ";");
+            }
             break;
         case OBRACKET_KEY:
-            process_char(OBRACKET_KEY, "[", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(OBRACKET_KEY, "{");
+            }
+            else
+            {
+                process_char(OBRACKET_KEY, "[");
+            }
             break;
         case CBRACKET_KEY:
-            process_char(CBRACKET_KEY, "]", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(CBRACKET_KEY, "}");
+            }
+            else
+            {
+                process_char(CBRACKET_KEY, "]");
+            }
             break;
         case CAPSLOCK_KEY:
             if (pressed_list[CAPSLOCK_KEY])
@@ -160,136 +268,357 @@ void parse_byte(uint8_t byte_read)
             }
             else
             {
-                capslock = !capslock;      
+                capslock = !capslock; 
+                pressed_list[CAPSLOCK_KEY] = true; //pressed
             }
             break;
         case RSHIFT_KEY:
+            r_shift = !r_shift;
+            break;
         case LSHIFT_KEY:
-            if (pressed_list[LSHIFT_KEY])
+            l_shift = !l_shift;
+            break;
+        case LCONTROL_KEY:
+            process_char(LCONTROL_KEY, "<LCNTROL>");
+            break;
+        case ENTER_KEY:
+            process_char(ENTER_KEY, "<ENTER>");
+            break;
+        case SPACE_KEY:
+            process_char(SPACE_KEY, " ");
+            break;
+        case TAB_KEY:
+            process_char(TAB_KEY, "\t");
+            break;
+        case BTICK_KEY:
+            if (alternate_key())
             {
-                pressed_list[LSHIFT_KEY] = false;
+                process_char(BTICK_KEY, "~");
             }
             else
             {
-                shift = !shift;      
+                process_char(BTICK_KEY, "`");
             }
             break;
-        case LCONTROL_KEY:
-            process_char(LCONTROL_KEY, "<LCNTROL>", shift, capslock);
+        case COMMA_KEY:
+            if (alternate_key())
+            {
+                process_char(COMMA_KEY, "<");
+            }
+            else
+            {
+                process_char(COMMA_KEY, ",");
+            }
             break;
-        case ENTER_KEY:
-            process_char(ENTER_KEY, "<ENTER>", shift, capslock);
+        case PERIOD_KEY:
+            if (alternate_key())
+            {
+                process_char(PERIOD_KEY, ">");
+            }
+            else
+            {
+                process_char(PERIOD_KEY, ".");
+            }
             break;
-        case SPACE_KEY:
-            process_char(SPACE_KEY, " ", shift, capslock);
+        case FSLASH_KEY:
+            if (alternate_key())
+            {
+                process_char(FSLASH_KEY, "?");
+            }
+            else
+            {
+                process_char(FSLASH_KEY, "/");
+            }
             break;
-        case TAB_KEY:
-            process_char(TAB_KEY, "\t", shift, capslock);
+        case BSLASH_KEY:
+            if (alternate_key())
+            {
+                process_char(BSLASH_KEY, "|");
+            }
+            else
+            {
+                process_char(BSLASH_KEY, "\\");
+            }
             break;
-        case BTICK_KEY:
-            process_char(BTICK_KEY, "`", shift, capslock);
+        case APOSTROPHE_KEY:
+            if (alternate_key())
+            {
+                process_char(APOSTROPHE_KEY, "\"");
+            }
+            else
+            {
+                process_char(APOSTROPHE_KEY, "\'");
+            }
             break;
         case LALT_KEY:
-            process_char(LALT_KEY, "<LALT>", shift, capslock);
+            process_char(LALT_KEY, "<LALT>");
             break;
         case ESCAPE_KEY:
-            process_char(ESCAPE_KEY, "<ESCAPE>", shift, capslock);
+            process_char(ESCAPE_KEY, "<ESCAPE>");
             break;
         case NUMLOCK_KEY:
-            process_char(NUMLOCK_KEY, "<NUMLOCK>", shift, capslock);
+            process_char(NUMLOCK_KEY, "<NUMLOCK>");
             break;
         case A_KEY:
             if(alternate_key())
             {
-                process_char(A_KEY, "A", shift, capslock);
+                process_char(A_KEY, "A");
             }
             else
             {
-                process_char(A_KEY, "a", shift, capslock);
+                process_char(A_KEY, "a");
             }
             
             break;
         case B_KEY:
             if(alternate_key())
             {
-                process_char(B_KEY, "B", shift, capslock);
+                process_char(B_KEY, "B");
             }
             else
             {
-                process_char(B_KEY, "b", shift, capslock);
+                process_char(B_KEY, "b");
             }
             break;
         case C_KEY:
-            process_char(C_KEY, "c", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(C_KEY, "C");
+            }
+            else
+            {
+                process_char(C_KEY, "c");
+            }
             break;
         case D_KEY:
-            process_char(D_KEY, "d", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(D_KEY, "D");
+            }
+            else
+            {
+                process_char(D_KEY, "d");
+            }
             break;
         case E_KEY:
-            process_char(E_KEY, "e", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(E_KEY, "E");
+            }
+            else
+            {
+                process_char(E_KEY, "e");
+            }
             break;
         case F_KEY:
-            process_char(F_KEY, "f", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(F_KEY, "F");
+            }
+            else
+            {
+                process_char(F_KEY, "f");
+            }
             break;
         case G_KEY:
-            process_char(G_KEY, "g", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(G_KEY, "G");
+            }
+            else
+            {
+                process_char(G_KEY, "g");
+            }
             break;
         case H_KEY:
-            process_char(H_KEY, "h", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(H_KEY, "H");
+            }
+            else
+            {
+                process_char(H_KEY, "h");
+            }
             break;
         case I_KEY:
-            process_char(I_KEY, "i", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(I_KEY, "I");
+            }
+            else
+            {
+                process_char(I_KEY, "i");
+            }
             break;
         case J_KEY:
-            process_char(J_KEY, "j", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(J_KEY, "J");
+            }
+            else
+            {
+                process_char(J_KEY, "j");
+            }
             break;
         case K_KEY:
-            process_char(K_KEY, "k", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(K_KEY, "K");
+            }
+            else
+            {
+                process_char(K_KEY, "k");
+            }
             break;
         case L_KEY:
-            process_char(L_KEY, "l", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(L_KEY, "L");
+            }
+            else
+            {
+                process_char(L_KEY, "l");
+            }
             break;
         case M_KEY:
-            process_char(M_KEY, "m", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(M_KEY, "M");
+            }
+            else
+            {
+                process_char(M_KEY, "m");
+            }
             break;
         case N_KEY:
-            process_char(N_KEY, "n", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(N_KEY, "N");
+            }
+            else
+            {
+                process_char(N_KEY, "n");
+            }
             break;
         case O_KEY:
-            process_char(O_KEY, "o", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(O_KEY, "O");
+            }
+            else
+            {
+                process_char(O_KEY, "o");
+            }
             break;
         case P_KEY:
-            process_char(P_KEY, "p", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(P_KEY, "P");
+            }
+            else
+            {
+                process_char(P_KEY, "p");
+            }
             break;
         case Q_KEY:
-            process_char(Q_KEY, "q", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(Q_KEY, "Q");
+            }
+            else
+            {
+                process_char(Q_KEY, "q");
+            }
             break;
         case R_KEY:
-            process_char(R_KEY, "R", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(R_KEY, "R");
+            }
+            else
+            {
+                process_char(R_KEY, "r");
+            }
             break;
         case S_KEY:
-            process_char(S_KEY, "s", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(S_KEY, "S");
+            }
+            else
+            {
+                process_char(S_KEY, "s");
+            }
             break;
         case T_KEY:
-            process_char(T_KEY, "t", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(T_KEY, "T");
+            }
+            else
+            {
+                process_char(T_KEY, "t");
+            }
             break;
         case U_KEY:
-            process_char(U_KEY, "u", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(U_KEY, "U");
+            }
+            else
+            {
+                process_char(U_KEY, "u");
+            }
             break;
         case V_KEY:
-            process_char(V_KEY, "v", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(V_KEY, "V");
+            }
+            else
+            {
+                process_char(V_KEY, "v");
+            }
             break;
         case W_KEY:
-            process_char(W_KEY, "w", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(W_KEY, "W");
+            }
+            else
+            {
+                process_char(W_KEY, "w");
+            }
             break;
         case X_KEY:
-            process_char(X_KEY, "x", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(X_KEY, "X");
+            }
+            else
+            {
+                process_char(X_KEY, "x");
+            }
             break;
         case Y_KEY:
-            process_char(Y_KEY, "y", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(Y_KEY, "Y");
+            }
+            else
+            {
+                process_char(Y_KEY, "y");
+            }
             break;
         case Z_KEY:
-            process_char(Z_KEY, "z", shift, capslock);
+            if (alternate_key())
+            {
+                process_char(Z_KEY, "Z");
+            }
+            else
+            {
+                process_char(Z_KEY, "z");
+            }
             break;
         case RELEASE_PRIMARY_SET:
             break;
@@ -301,7 +630,7 @@ void parse_byte(uint8_t byte_read)
 }
 
 // Prints the character decoded by the scancode. 
-void process_char(uint8_t scancode, char* to_print, bool shift, bool capslock)
+void process_char(uint8_t scancode, char* to_print)
 {
         if (pressed_list[scancode]) // if already pressed
         {
@@ -324,7 +653,7 @@ bool alternate_key(void)
     {
         capitalize = !capitalize;
     }
-    if(shift)
+    if(l_shift || r_shift)
     {
         capitalize = !capitalize;
     }

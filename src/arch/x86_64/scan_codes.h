@@ -45,6 +45,7 @@
 #define LALT_KEY 0x11
 #define ESCAPE_KEY 0x76
 #define NUMLOCK_KEY 0x77
+#define APOSTROPHE_KEY 0x52
 #define A_KEY 0x1C
 #define B_KEY 0x32
 #define C_KEY 0x21

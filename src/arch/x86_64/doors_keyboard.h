@@ -32,7 +32,7 @@ struct PS_Controller_Config
     uint8_t PS2_zero_two:1;
 }__attribute__((packed));
 
-void process_char(uint8_t scancode, char* to_print, bool shift, bool capslock);
+void process_char(uint8_t scancode, char* to_print);
 bool alternate_key(void);
 
 uint8_t inb(uint16_t port);
