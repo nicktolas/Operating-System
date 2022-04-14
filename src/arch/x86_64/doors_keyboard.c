@@ -9,26 +9,43 @@ void keyboard_init(void)
     struct PS_Controller_Config* curr_ps_config;
     uint8_t read_status;
     // Send config to disable Port 1 and 2
-    outb(PS2_CMD, PS2_CONTROLLER_PORT_FIRST_DISABLE);
+    ps2_write_CMD(PS2_CONTROLLER_PORT_FIRST_DISABLE);
     // ps2_poll();
-    outb(PS2_CMD, PS2_CONTROLLER_PORT_SECOND_DISABLE);
-    outb(PS2_CMD, PS2_CONTROLLER_BYTE_ZERO);
-    ps2_poll();
+    ps2_write_CMD(PS2_CONTROLLER_PORT_SECOND_DISABLE);
+    // Flush the output buffer
+    inb(PS2_DATA);
+    // Get configuration information
+    ps2_write_CMD(PS2_CONTROLLER_BYTE_ZERO);
+    read_status = ps2_poll_read();
     // Enable clock and interupts of port 1.
     curr_ps_config = (struct PS_Controller_Config*) &read_status;
-    read_status = inb(PS2_DATA);
-    curr_ps_config->PS2_second_port_clk = 0;
+    curr_ps_config->PS2_second_port_clk = 1;
     curr_ps_config->PS2_second_port_int = 0;
     curr_ps_config->PS2_first_port_clk = 0;
     curr_ps_config->PS2_first_port_int = 0;
-    outb(PS2_CMD, PS2_DATA);
-    outb(PS2_DATA, read_status);
-    ps2_poll();
-    outb(PS2_CMD, PS2_RESET);
+    curr_ps_config->PS2_port_translaton = 0;
+    // Tell Controller to add this configuration
+    ps2_write_CMD(PS2_DATA);
+    // Wait for us to be able to write
+    ps2_poll_write(read_status);
+    // Test if Controller is functioning as intended
+    ps2_write_CMD(PS2_CONTROLLER_SELF_TEST);
+    read_status = ps2_poll_read();
+    if(read_status == 0x55)
+    {
+        printk("PS2 Self Test: GOOD %x\r\n", read_status);
+    }
+    else
+    {
+        printk("PS2 Self Test: BAD %x\r\n", read_status);
+    }
+    // Enable the Controller
+    ps2_write_CMD(PS2_CONTROLLER_PORT_FIRST_ENABLE);
+    // Reset the keyboard device itself
+    ps2_poll_write(PS2_RESET); // write to device
+    // read the response
     printk("Reset status: %x\r\n", ps2_poll_read());
-    outb(PS2_DATA, SC2_PRESSED_F);
     // set scan 0x55 keep going
-    outb(PS2_CMD, PS2_CONTROLLER_PORT_FIRST_ENABLE);
     return;
 }
 
@@ -46,9 +63,30 @@ void keyboard_loop(void)
 
 void parse_byte(char byte_read)
 {
-    if(byte_read == SC2_PRESSED_F)
+    static bool capslock;
+    static bool shift;
+    static bool release;
+    static bool secondary;
+    switch(byte_read)
     {
-        printk("f");
+        case F1_KEY:
+        case F2_KEY:
+        case F3_KEY:
+        case F4_KEY:
+        case F5_KEY:
+        case F6_KEY:
+        case F7_KEY:
+        case F8_KEY:
+        case F9_KEY:
+        case F10_KEY:
+        case F11_KEY:
+        case F12_KEY:
+            printk("<Function Key>");
+            secondary = false;
+            break;
+        default:
+            printk("\r\n Enountered unreocgnized character, Scan Code: %x", byte_read);
+            break;
     }
     return;
 }
@@ -73,15 +111,29 @@ void ps2_poll(void)
     return;
 }
 
-void ps2_poll_write(void)
+void ps2_poll_write(char write_byte)
 {
     char status = inb(PS2_STATUS);
-    while(!(status & PS2_STATUS_INPUT))
+    // if status buf bit 2 says input buf is empty (0)
+    while((status & PS2_STATUS_INPUT)) // while input buf is full (1)
     {
         status = inb(PS2_STATUS);
     }
+    outb(PS2_DATA, write_byte);
     return;
 }
+
+void ps2_write_CMD(char write_byte)
+{
+    char status = inb(PS2_STATUS);
+    while((status & PS2_STATUS_INPUT))
+    {
+        status = inb(PS2_STATUS);
+    }
+    outb(PS2_CMD, write_byte);
+    return;
+}
+
 
 uint8_t inb(uint16_t port)
 {

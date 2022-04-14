@@ -1,4 +1,5 @@
 #ifndef DOORS_KEYBOARD
+#include "scan_code.h"
 #define DOORS_KEYBOARD
 #define PS2_DATA 0x60
 #define PS2_CMD 0x64
@@ -11,8 +12,10 @@
 #define PS2_CONTROLLER_PORT_SECOND_DISABLE 0xA7
 #define PS2_CONTROLLER_PORT_SECOND_ENABLE 0xA8
 #define PS2_CONTROLLER_BYTE_ZERO 0x20
-
+#define PS2_CONTROLLER_SELF_TEST 0xAA
+#define PS2_CONTROLLER_WRITE_NEXT 0xD1
 #define SC2_PRESSED_F 0x2B
+
 /*
     Struct for configuring the PS/2 Controller. 
     PS2_zero_one/two must be set to zero by user.
@@ -33,7 +36,8 @@ uint8_t inb(uint16_t port);
 void outb(uint16_t port, uint8_t val);
 char ps2_poll_read(void);
 void ps2_poll(void);
-void ps2_poll_write(void);
+void ps2_poll_write(char write_byte);
+void ps2_write_CMD(char write_byte);
 void keyboard_init(void);
 void keyboard_loop(void);
 void parse_byte(char byte_read);
