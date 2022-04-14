@@ -8,6 +8,7 @@
 #define F4_KEY 0X0C
 #define F5_KEY 0x03
 #define F6_KEY 0X0B
+#define F7_KEY 0x83
 #define F8_KEY 0x0A
 #define F9_KEY 0x01
 #define F10_KEY 0X09
@@ -20,7 +21,7 @@
 #define _4_KEY 0x25
 #define _5_KEY 0x2E
 #define _6_KEY 0x36
-#define _7_KEY 0x78
+#define _7_KEY 0x3D
 #define _8_KEY 0x3E
 #define _9_KEY 0x46
 #define MINUS_KEY 0x4E

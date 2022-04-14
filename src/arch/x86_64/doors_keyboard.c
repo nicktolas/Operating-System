@@ -3,6 +3,10 @@
 #include "doors_keyboard.h"
 #include "doors_string.h"
 
+static bool pressed_list[300] = {0};
+static bool capslock;
+static bool shift; 
+static bool secondary;
 
 void keyboard_init(void)
 {
@@ -53,6 +57,9 @@ void keyboard_loop(void)
 {
     int hold = 1;
     char byte_read;
+    capslock = false;
+    shift = false; 
+    secondary = false;
     while(hold)
     {
         byte_read = ps2_poll_read();
@@ -61,34 +68,267 @@ void keyboard_loop(void)
     return;
 }
 
-void parse_byte(char byte_read)
+void parse_byte(uint8_t byte_read)
 {
-    static bool capslock;
-    static bool shift;
-    static bool release;
-    static bool secondary;
     switch(byte_read)
     {
         case F1_KEY:
+            process_char(F1_KEY, "<F1>", shift, capslock);
+            break;
         case F2_KEY:
+            process_char(F2_KEY, "<F2>", shift, capslock);
+            break;
         case F3_KEY:
+            process_char(F3_KEY, "<F3>", shift, capslock);
+            break;
         case F4_KEY:
+            process_char(F4_KEY, "<F4>", shift, capslock);
+            break;
         case F5_KEY:
+            process_char(F5_KEY, "<F5>", shift, capslock);
+            break;
         case F6_KEY:
+            process_char(F6_KEY, "<F6>", shift, capslock);
+            break;
         case F7_KEY:
+            process_char(F7_KEY, "<F7>", shift, capslock);
+            break;
         case F8_KEY:
+            process_char(F8_KEY, "<F8>", shift, capslock);
+            break;
         case F9_KEY:
+            process_char(F9_KEY, "<F9>", shift, capslock);
+            break;
         case F10_KEY:
+            process_char(F10_KEY, "<F10>", shift, capslock);
+            break;
         case F11_KEY:
+            process_char(F11_KEY, "<F11>", shift, capslock);
+            break;
         case F12_KEY:
-            printk("<Function Key>");
-            secondary = false;
+            process_char(F12_KEY, "<F12>", shift, capslock);
+            break;
+        case _0_KEY:
+            process_char(_0_KEY, "0", shift, capslock);
+            break;
+        case _1_KEY:
+            process_char(_1_KEY, "1", shift, capslock);
+            break;
+        case _2_KEY:
+            process_char(_2_KEY, "2", shift, capslock);
+            break;
+        case _3_KEY:
+            process_char(_3_KEY, "3", shift, capslock);
+            break;
+        case _4_KEY:
+            process_char(_4_KEY, "4", shift, capslock);
+            break;
+        case _5_KEY:
+            process_char(_5_KEY, "5", shift, capslock);
+            break;
+        case _6_KEY:
+            process_char(_6_KEY, "6", shift, capslock);
+            break;
+        case _7_KEY:
+            process_char(_7_KEY, "7", shift, capslock);
+            break;
+        case _8_KEY:
+            process_char(_8_KEY, "8", shift, capslock);
+            break;
+        case _9_KEY:
+            process_char(_9_KEY, "9", shift, capslock);
+            break;
+        case MINUS_KEY:
+            process_char(MINUS_KEY, "-", shift, capslock);
+            break;
+        case EQ_KEY:
+            process_char(EQ_KEY, "=", shift, capslock);
+            break;
+        case SEMICOLON_KEY:
+            process_char(SEMICOLON_KEY, ";", shift, capslock);
+            break;
+        case OBRACKET_KEY:
+            process_char(OBRACKET_KEY, "[", shift, capslock);
+            break;
+        case CBRACKET_KEY:
+            process_char(CBRACKET_KEY, "]", shift, capslock);
+            break;
+        case CAPSLOCK_KEY:
+            if (pressed_list[CAPSLOCK_KEY])
+            {
+                pressed_list[CAPSLOCK_KEY] = false;
+            }
+            else
+            {
+                capslock = !capslock;      
+            }
+            break;
+        case RSHIFT_KEY:
+        case LSHIFT_KEY:
+            if (pressed_list[LSHIFT_KEY])
+            {
+                pressed_list[LSHIFT_KEY] = false;
+            }
+            else
+            {
+                shift = !shift;      
+            }
+            break;
+        case LCONTROL_KEY:
+            process_char(LCONTROL_KEY, "<LCNTROL>", shift, capslock);
+            break;
+        case ENTER_KEY:
+            process_char(ENTER_KEY, "<ENTER>", shift, capslock);
+            break;
+        case SPACE_KEY:
+            process_char(SPACE_KEY, " ", shift, capslock);
+            break;
+        case TAB_KEY:
+            process_char(TAB_KEY, "\t", shift, capslock);
+            break;
+        case BTICK_KEY:
+            process_char(BTICK_KEY, "`", shift, capslock);
+            break;
+        case LALT_KEY:
+            process_char(LALT_KEY, "<LALT>", shift, capslock);
+            break;
+        case ESCAPE_KEY:
+            process_char(ESCAPE_KEY, "<ESCAPE>", shift, capslock);
+            break;
+        case NUMLOCK_KEY:
+            process_char(NUMLOCK_KEY, "<NUMLOCK>", shift, capslock);
+            break;
+        case A_KEY:
+            if(alternate_key())
+            {
+                process_char(A_KEY, "A", shift, capslock);
+            }
+            else
+            {
+                process_char(A_KEY, "a", shift, capslock);
+            }
+            
+            break;
+        case B_KEY:
+            if(alternate_key())
+            {
+                process_char(B_KEY, "B", shift, capslock);
+            }
+            else
+            {
+                process_char(B_KEY, "b", shift, capslock);
+            }
+            break;
+        case C_KEY:
+            process_char(C_KEY, "c", shift, capslock);
+            break;
+        case D_KEY:
+            process_char(D_KEY, "d", shift, capslock);
+            break;
+        case E_KEY:
+            process_char(E_KEY, "e", shift, capslock);
+            break;
+        case F_KEY:
+            process_char(F_KEY, "f", shift, capslock);
+            break;
+        case G_KEY:
+            process_char(G_KEY, "g", shift, capslock);
+            break;
+        case H_KEY:
+            process_char(H_KEY, "h", shift, capslock);
+            break;
+        case I_KEY:
+            process_char(I_KEY, "i", shift, capslock);
+            break;
+        case J_KEY:
+            process_char(J_KEY, "j", shift, capslock);
+            break;
+        case K_KEY:
+            process_char(K_KEY, "k", shift, capslock);
+            break;
+        case L_KEY:
+            process_char(L_KEY, "l", shift, capslock);
+            break;
+        case M_KEY:
+            process_char(M_KEY, "m", shift, capslock);
+            break;
+        case N_KEY:
+            process_char(N_KEY, "n", shift, capslock);
+            break;
+        case O_KEY:
+            process_char(O_KEY, "o", shift, capslock);
+            break;
+        case P_KEY:
+            process_char(P_KEY, "p", shift, capslock);
+            break;
+        case Q_KEY:
+            process_char(Q_KEY, "q", shift, capslock);
+            break;
+        case R_KEY:
+            process_char(R_KEY, "R", shift, capslock);
+            break;
+        case S_KEY:
+            process_char(S_KEY, "s", shift, capslock);
+            break;
+        case T_KEY:
+            process_char(T_KEY, "t", shift, capslock);
+            break;
+        case U_KEY:
+            process_char(U_KEY, "u", shift, capslock);
+            break;
+        case V_KEY:
+            process_char(V_KEY, "v", shift, capslock);
+            break;
+        case W_KEY:
+            process_char(W_KEY, "w", shift, capslock);
+            break;
+        case X_KEY:
+            process_char(X_KEY, "x", shift, capslock);
+            break;
+        case Y_KEY:
+            process_char(Y_KEY, "y", shift, capslock);
+            break;
+        case Z_KEY:
+            process_char(Z_KEY, "z", shift, capslock);
+            break;
+        case RELEASE_PRIMARY_SET:
             break;
         default:
-            printk("\r\n Enountered unreocgnized character, Scan Code: %x", byte_read);
+            printk("\r\n Enountered unreocgnized character, Scan Code: %x\r\n", byte_read);
             break;
     }
     return;
+}
+
+// Prints the character decoded by the scancode. 
+void process_char(uint8_t scancode, char* to_print, bool shift, bool capslock)
+{
+        if (pressed_list[scancode]) // if already pressed
+        {
+            pressed_list[scancode] = false;
+        }
+        else // print on press
+        {
+            printk("%s", to_print);
+            pressed_list[scancode] = true;
+        }
+        return;
+}
+
+// Checks to see whether the alternate (shifted) key should be used. 
+bool alternate_key(void)
+{
+    bool capitalize;
+    capitalize = false;
+    if(capslock)
+    {
+        capitalize = !capitalize;
+    }
+    if(shift)
+    {
+        capitalize = !capitalize;
+    }
+    return capitalize;
 }
 
 char ps2_poll_read(void)

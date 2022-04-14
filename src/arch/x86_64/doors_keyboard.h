@@ -1,5 +1,5 @@
 #ifndef DOORS_KEYBOARD
-#include "scan_code.h"
+#include "scan_codes.h"
 #define DOORS_KEYBOARD
 #define PS2_DATA 0x60
 #define PS2_CMD 0x64
@@ -32,6 +32,9 @@ struct PS_Controller_Config
     uint8_t PS2_zero_two:1;
 }__attribute__((packed));
 
+void process_char(uint8_t scancode, char* to_print, bool shift, bool capslock);
+bool alternate_key(void);
+
 uint8_t inb(uint16_t port);
 void outb(uint16_t port, uint8_t val);
 char ps2_poll_read(void);
@@ -40,7 +43,7 @@ void ps2_poll_write(char write_byte);
 void ps2_write_CMD(char write_byte);
 void keyboard_init(void);
 void keyboard_loop(void);
-void parse_byte(char byte_read);
+void parse_byte(uint8_t byte_read);
 
 
 #endif

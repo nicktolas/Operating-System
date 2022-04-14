@@ -37,6 +37,10 @@ void VGA_display_char(char c)
         VGA_display_char(' ');
         VGA_display_char(' ');
     }
+    else if(c == '\0')
+    {
+        return;
+    }
     else
     {
         vgaBuff[vga_cursor+(vga_cursor_row*80)] = (vga_color << 8) | c;
