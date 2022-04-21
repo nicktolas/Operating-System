@@ -18,6 +18,7 @@ void idt_init(void)
     load_idt();
     return;
 }
+
 void occupy_idt(void)
 {
     int i;
@@ -147,7 +148,7 @@ uint16_t pic_get_isr(void)
     return __pic_get_irq_reg(PIC_READ_ISR);
 }
 
-void gen_interrupt_handler(int irq_num, int error_code)
+void gen_isr_handler(int irq_num, int error_code)
 {
     // debug
     asm ( "hlt" );
