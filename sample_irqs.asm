@@ -19,14 +19,16 @@ without_error:
     br gen_handle
 
 gen_handle:
-    call gen_handler
-    ; push rbp ; push all caller save registers
-    ; push rbx
-    ; push r12
-    ; push r13
-    ; push r14
-    ; push r15
-    ; push rsp
+    pop rax
+    pop rbx
+    push rbp ; push all caller save registers
+    push rbx
+    push r12
+    push r13
+    push r14
+    push r15
+    push rsp
+    call gen_handler ; needs to be an extern that is global to the file
 
 gen_return:
     ; pop rax ; this is the stack pointer
