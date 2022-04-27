@@ -7,7 +7,7 @@ linker_script := src/arch/$(arch)/linker.ld
 grub_cfg := src/arch/$(arch)/grub.cfg
 cfiles := src/arch/$(arch)/*.c
 gcc := x86_64-elf-gcc
-gcc_flags := -g -Wall -Werror -mno_red_zone
+gcc_flags := -g -Wall -Werror -mno-red-zone
 assembly_source_files := $(wildcard src/arch/$(arch)/*.asm)
 c_source_files := $(wildcard src/arch/$(arch)/*.c)
 c_header_files := $(wildcard src/arch/$(arch)/*.h)
@@ -45,8 +45,6 @@ $(fat32): $(kernel) $(grub_cfg)
 	@echo $(loopb)
 	@sudo losetup $(loopb) doors.img -o 1048576
 	@sudo mkdosfs -F32 -f 2 $(loopb)
-
-
 
 # Place Grub at start of disk
 	@echo "Placing Grub"

@@ -3,6 +3,7 @@
 #include "doors_string.h"
 #include "kernel_testing.h"
 #include "doors_keyboard.h"
+#include "kernel_interrupts.h"
 
 void kmain(void)
 {
@@ -20,7 +21,7 @@ void kmain(void)
     interrupts_init();
 
     // test_printk();
-    // test_keyboard();
+    test_keyboard();
     
     while(1)
     {

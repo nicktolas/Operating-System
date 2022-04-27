@@ -35,8 +35,7 @@ struct PS_Controller_Config
 void process_char(uint8_t scancode, char* to_print);
 bool alternate_key(void);
 
-uint8_t inb(uint16_t port);
-void outb(uint16_t port, uint8_t val);
+
 char ps2_poll_read(void);
 void ps2_poll(void);
 void ps2_poll_write(char write_byte);

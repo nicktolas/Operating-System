@@ -18,14 +18,16 @@
 #define ICW4_BUF_SLAVE 0x08		/* Buffered mode/slave */
 #define ICW4_BUF_MASTER	0x0C		/* Buffered mode/master */
 #define ICW4_SFNM 0x10		/* Special fully nested (not) */
-#define PIC1_CMD 0x20
-#define PIC1_DATA 0x21
-#define PIC2_CMD 0xA0
-#define PIC2_DATA 0xA1
+#define PIC1_CMD PIC1_COMMAND
+#define PIC2_CMD PIC2_COMMAND
 #define PIC_READ_IRR 0x0a    /* OCW3 irq ready next CMD read */
 #define PIC_READ_ISR 0x0b    /* OCW3 irq service next CMD read */
 #define PIC_MREMAP 0x20 /* remaps to 0x20 - 0x27 */
 #define PIC_SREMAP 0x70 /* remaps to 0x70 - 0x77 */
+#define MASK_BITS_L32 0xFFFFFFFF
+#define MASK_BITS_L16 0xFFFF
+#define CGD_TRAP 1
+#define CGD_INT 0
 
 struct Call_Gate_Descriptor
 {   
@@ -50,11 +52,22 @@ void occupy_idt(void);
 void PIC_sendEOI(unsigned char irq);
 void PIC_remap(int offset1, int offset2);
 void PIC_disable(void);
+void PIC_enable(void);
 void IRQ_clear_mask(unsigned char IRQline);
 void IRQ_set_mask(unsigned char IRQline);
 uint16_t pic_get_isr(void);
 uint16_t pic_get_irr(void);
-static uint16_t __pic_get_irq_reg(int ocw3);
+uint16_t __pic_get_irq_reg(int ocw3);
 void gen_isr_handler(int irq_num, int error_code);
+
+inline void interrupt_off(void)
+{
+    asm("sli");
+}
+
+inline void interrupt_on(void)
+{
+    asm("cli");
+}
 
 #endif
