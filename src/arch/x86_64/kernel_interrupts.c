@@ -7,6 +7,7 @@ struct Call_Gate_Descriptor Int_Desc_Table_Entries[256] = {0};
 
 void interrupts_init(void)
 {
+    idt_init();
     return;
 }
 
@@ -21,11 +22,32 @@ void idt_init(void)
     load_idt();
     // configure the mask
     // enable interupts in PIC
-    // PIC_enable();
+    PIC_init();
+    // enable interrupts
+    asm("STI");
     return;
 }
 
-
+void PIC_init()
+{
+    IRQ_clear_mask(0);
+    IRQ_set_mask(1);
+    IRQ_clear_mask(2);
+    IRQ_clear_mask(3);
+    IRQ_clear_mask(4);
+    IRQ_clear_mask(5);
+    IRQ_clear_mask(6);
+    IRQ_clear_mask(7);
+    IRQ_clear_mask(8);
+    IRQ_clear_mask(9);
+    IRQ_clear_mask(10);
+    IRQ_clear_mask(11);
+    IRQ_clear_mask(12);
+    IRQ_clear_mask(13);
+    IRQ_clear_mask(14);
+    IRQ_clear_mask(15);
+    return;
+}
 
 void load_idt(void)
 {
@@ -157,9 +179,9 @@ uint16_t pic_get_isr(void)
 void gen_isr_handler(int irq_num, int error_code)
 {
     // debug
-    asm ( "STI; hlt" );
+    asm ( "CLI; hlt" );
     // End of interrupt command
-    // PIC_sendEOI(irq_num);
+    PIC_sendEOI(irq_num);
     return;
 }
 

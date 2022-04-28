@@ -30,7 +30,7 @@ clean:
 	@rm doors.img
 
 run: $(clean) $(fat32)
-	@qemu-system-x86_64 -s -drive file=doors.img,format=raw
+	@qemu-system-x86_64 -s -drive file=doors.img,format=raw -no-reboot -d cpu_reset
 	
 fat32: $(fat32)
 
