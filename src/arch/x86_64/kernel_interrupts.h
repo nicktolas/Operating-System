@@ -29,6 +29,7 @@
 #define CGD_TRAP 1
 #define CGD_INT 0
 
+// swap to uint8_t for the bitfields
 struct Call_Gate_Descriptor
 {   
     uint16_t target_offset_bot;

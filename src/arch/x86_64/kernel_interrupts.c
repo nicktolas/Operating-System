@@ -31,7 +31,7 @@ void idt_init(void)
 void PIC_init()
 {
     IRQ_clear_mask(0);
-    IRQ_set_mask(1);
+    IRQ_set_mask(1); // keep clear - setup keyboard after
     IRQ_clear_mask(2);
     IRQ_clear_mask(3);
     IRQ_clear_mask(4);
@@ -49,6 +49,7 @@ void PIC_init()
     return;
 }
 
+//idt len should be byte size not entires length
 void load_idt(void)
 {
     static struct
@@ -180,7 +181,7 @@ void gen_isr_handler(int irq_num, int error_code)
 {
     // debug
     asm ( "CLI; hlt" );
-    // End of interrupt command
+    // End of interrupt command -- only on hardware interrupts
     PIC_sendEOI(irq_num);
     return;
 }
