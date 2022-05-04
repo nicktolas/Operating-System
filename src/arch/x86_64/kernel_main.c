@@ -15,13 +15,12 @@ void kmain(void)
     while(hold){;}
 
     VGA_clear();
-
-    keyboard_init();
-
     interrupts_init();
 
+    keyboard_init();
+    asm("int $128");
     // test_printk();
-    test_keyboard();
+    // test_keyboard();
     
     while(1)
     {

@@ -29,18 +29,18 @@
 #define CGD_TRAP 1
 #define CGD_INT 0
 
-// swap to uint8_t for the bitfields
+// swapped to uint8_t
 struct Call_Gate_Descriptor
 {   
     uint16_t target_offset_bot;
     uint16_t target_selector;
-    uint16_t stack_target:3;
-    uint16_t reserved_two:4;
-    uint16_t int_trap_gate:1;
-    uint16_t one:3;
-    uint16_t zero:1;
-    uint16_t protection_level:3;
-    uint16_t present:1;
+    uint8_t stack_target:3;
+    uint8_t reserved_two:4;
+    uint8_t int_trap_gate:1;
+    uint8_t one:3;
+    uint8_t zero:1;
+    uint8_t protection_level:3;
+    uint8_t present:1;
     uint16_t target_offset_mid;
     uint32_t target_offset_top;
     uint32_t reserved_one;  

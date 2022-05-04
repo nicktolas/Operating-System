@@ -30,22 +30,24 @@ void idt_init(void)
 
 void PIC_init()
 {
-    IRQ_clear_mask(0);
-    IRQ_set_mask(1); // keep clear - setup keyboard after
-    IRQ_clear_mask(2);
-    IRQ_clear_mask(3);
-    IRQ_clear_mask(4);
-    IRQ_clear_mask(5);
-    IRQ_clear_mask(6);
-    IRQ_clear_mask(7);
-    IRQ_clear_mask(8);
-    IRQ_clear_mask(9);
-    IRQ_clear_mask(10);
-    IRQ_clear_mask(11);
-    IRQ_clear_mask(12);
-    IRQ_clear_mask(13);
-    IRQ_clear_mask(14);
-    IRQ_clear_mask(15);
+    // clear enables, set disables
+    IRQ_set_mask(0);
+    // IRQ_set_mask(1);
+    IRQ_clear_mask(1);
+    IRQ_set_mask(2);
+    IRQ_set_mask(3);
+    IRQ_set_mask(4);
+    IRQ_set_mask(5);
+    IRQ_set_mask(6);
+    IRQ_set_mask(7);
+    IRQ_set_mask(8);
+    IRQ_set_mask(9);
+    IRQ_set_mask(10);
+    IRQ_set_mask(11);
+    IRQ_set_mask(12);
+    IRQ_set_mask(13);
+    IRQ_set_mask(14);
+    IRQ_set_mask(15);
     return;
 }
 
@@ -57,7 +59,7 @@ void load_idt(void)
         uint16_t length;
         void* base;
     }__attribute__((packed)) idt;
-    idt.length = IDT_LENGTH - 1;
+    idt.length = sizeof(struct Call_Gate_Descriptor) * 256;
     idt.base = Int_Desc_Table_Entries;
     asm ( "lidt %0" : : "m"(idt) );
     return;
