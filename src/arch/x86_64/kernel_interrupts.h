@@ -64,6 +64,8 @@ uint16_t pic_get_irr(void);
 uint16_t __pic_get_irq_reg(int ocw3);
 void gen_isr_handler(int irq_num, int error_code);
 void PIC_init();
+void keyboard_int_handler();
+void enable_int_irq();
 
 static inline void interrupt_off(void)
 {

@@ -16,8 +16,10 @@ void kmain(void)
 
     VGA_clear();
     interrupts_init();
-
     keyboard_init();
+    enable_int_irq();
+
+    
     asm("int $128");
     // test_printk();
     // test_keyboard();

@@ -27,7 +27,7 @@ void keyboard_init(void)
     curr_ps_config->PS2_second_port_clk = 1;
     curr_ps_config->PS2_second_port_int = 0;
     curr_ps_config->PS2_first_port_clk = 0;
-    curr_ps_config->PS2_first_port_int = 0;
+    curr_ps_config->PS2_first_port_int = 1;
     curr_ps_config->PS2_port_translaton = 0;
     // Tell Controller to add this configuration
     ps2_write_CMD(PS2_DATA);
@@ -51,6 +51,11 @@ void keyboard_init(void)
     // read the response
     printk("Reset status: %x\r\n", ps2_poll_read());
     // set scan 0x55 keep going
+    capslock = false;
+    l_shift = false; 
+    r_shift = false;
+    secondary = false;
+    ps2_poll_read();
     return;
 }
 
@@ -70,6 +75,13 @@ void keyboard_loop(void)
         parse_byte(byte_read);
     }
     return;
+}
+
+// reads character from ps2 controller - called only from interrupt context
+void keyboard_consume_byte(void)
+{
+    char byte_read = ps2_poll_read();
+    parse_byte(byte_read);
 }
 
 void parse_byte(uint8_t byte_read)

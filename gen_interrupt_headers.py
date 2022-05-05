@@ -41,6 +41,7 @@ gen_return:
 \tpop r13
 \tpop r12
 \tpop rbx
+\tpop rbp
 \tpop rsp
 \tpop rdi
 \tpop rsi

@@ -43,6 +43,7 @@ void ps2_write_CMD(char write_byte);
 void keyboard_init(void);
 void keyboard_loop(void);
 void parse_byte(uint8_t byte_read);
+void keyboard_consume_byte(void);
 
 
 #endif

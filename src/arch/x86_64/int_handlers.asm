@@ -1868,6 +1868,7 @@ gen_return:
 	pop r13
 	pop r12
 	pop rbx
+	pop rbp
 	pop rsp
 	pop rdi
 	pop rsi
