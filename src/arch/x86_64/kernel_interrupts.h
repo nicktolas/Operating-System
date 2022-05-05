@@ -35,11 +35,11 @@ struct Call_Gate_Descriptor
     uint16_t target_offset_bot;
     uint16_t target_selector;
     uint8_t stack_target:3;
-    uint8_t reserved_two:4;
+    uint8_t reserved_two:5;
     uint8_t int_trap_gate:1;
     uint8_t one:3;
     uint8_t zero:1;
-    uint8_t protection_level:3;
+    uint8_t protection_level:2;
     uint8_t present:1;
     uint16_t target_offset_mid;
     uint32_t target_offset_top;

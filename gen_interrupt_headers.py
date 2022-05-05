@@ -71,10 +71,11 @@ c_func = open("idt_assign.c", "w")
 for i in range(0, 256):
     c_func.write('''Int_Desc_Table_Entries[{irq_num}].zero = 0;
 Int_Desc_Table_Entries[{irq_num}].present = 1;
+Int_Desc_Table_Entries[{irq_num}].one = 1;
 Int_Desc_Table_Entries[{irq_num}].protection_level = 0;
 Int_Desc_Table_Entries[{irq_num}].stack_target = 0;
 Int_Desc_Table_Entries[{irq_num}].int_trap_gate = CGD_TRAP;
-Int_Desc_Table_Entries[{irq_num}].target_selector = 0;
+Int_Desc_Table_Entries[{irq_num}].target_selector = 8;
 Int_Desc_Table_Entries[{irq_num}].target_offset_top = ((uint64_t) &asm_isr_{irq_num}) >> 32;
 Int_Desc_Table_Entries[{irq_num}].target_offset_mid = (((uint64_t) &asm_isr_{irq_num}) & MASK_BITS_L32) >> 16;
 Int_Desc_Table_Entries[{irq_num}].target_offset_bot = (((uint64_t) &asm_isr_{irq_num}) & MASK_BITS_L16);\n'''.format(irq_num = i))
