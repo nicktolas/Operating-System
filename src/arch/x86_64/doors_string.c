@@ -1,13 +1,23 @@
 #include "kernel.h"
 #include "kernel_memory.h"
 #include "kernel_vga.h"
+#include "kernel_interrupts.h"
 #include "doors_string.h"
 
 int printk(const char *fmt, ...)
 {
     int i;
+    int return_val;
     va_list args_list;
     va_start(args_list, fmt);
+    bool int_toggle = false;
+    return_val = 0;
+    if(interrupt_status == true)
+    {
+        interrupt_off();
+        interrupt_status = false;
+        int_toggle = true;
+    }
     for(i=0; i < strlen(fmt); i++)
     {
         // format specfier - call respective function and double iterate the count
@@ -16,7 +26,8 @@ int printk(const char *fmt, ...)
             // No specfier and placed at end of the line
             if(i+1 >= strlen(fmt))
             {
-                return -1;
+                return_val = -1;
+                break;
             }
             i++; // iterate the index
             switch(fmt[i])
@@ -92,7 +103,7 @@ int printk(const char *fmt, ...)
                     VGA_display_char(fmt[i]);
                     VGA_display_str("\r\n");
                     va_end(args_list);
-                    return -1;
+                    return_val = -1;
                     break;
             }
         }
@@ -100,9 +111,18 @@ int printk(const char *fmt, ...)
         {
             VGA_display_char(fmt[i]);
         }
+        if(return_val != 0)
+        {
+            break;
+        }
     }
     va_end(args_list);
-    return 0;
+    if(int_toggle == true)
+    {
+        interrupt_status = true;
+        interrupt_on();
+    }
+    return return_val;
 }
 // } __attribute__ ((format (printf, 1, 2)));
 

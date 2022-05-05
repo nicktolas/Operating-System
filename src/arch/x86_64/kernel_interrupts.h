@@ -46,6 +46,9 @@ struct Call_Gate_Descriptor
     uint32_t reserved_one;  
 }__attribute__((packed));
 
+// true represents interrupts on, false represents they are off
+bool interrupt_status;
+
 void interrupts_init(void);
 void idt_init(void);
 void load_idt();
@@ -62,12 +65,12 @@ uint16_t __pic_get_irq_reg(int ocw3);
 void gen_isr_handler(int irq_num, int error_code);
 void PIC_init();
 
-inline void interrupt_off(void)
+static inline void interrupt_off(void)
 {
-    asm("sli");
+    asm("sti");
 }
 
-inline void interrupt_on(void)
+static inline void interrupt_on(void)
 {
     asm("cli");
 }

@@ -1,6 +1,7 @@
 #include "kernel.h"
 #include "kernel_interrupts.h"
 #include "kernel_memory.h"
+#include "doors_string.h"
 #include "isr_func_headers.h"
 
 struct Call_Gate_Descriptor Int_Desc_Table_Entries[256] = {0};
@@ -24,6 +25,7 @@ void idt_init(void)
     // enable interupts in PIC
     PIC_init();
     // enable interrupts
+    interrupt_status = true;
     asm("STI");
     return;
 }
@@ -109,23 +111,6 @@ void PIC_sendEOI(unsigned char irq)
 	outb(PIC1_COMMAND,PIC_EOI);
 }
 
-// void PIC_disable(void)
-// {
-//     asm("mov al, 0xff \n\t
-//     out 0xa1, al \n\t
-//     out 0x21, al \n\t"
-//     :::"al");
-//     return;
-// }
-
-// void PIC_enable(void)
-// {
-//     asm("mov al, 0x00 \n\t
-//     out 0xa1, al \n\t
-//     out 0x21, al \n\t"
-//     :::"al");
-//     return;
-// }
 
 void IRQ_set_mask(unsigned char IRQline)
 {
@@ -182,9 +167,28 @@ uint16_t pic_get_isr(void)
 void gen_isr_handler(int irq_num, int error_code)
 {
     // debug
-    asm ( "CLI; hlt" );
+    asm ("CLI;");
+    interrupt_status = false;
+    switch (irq_num)
+    {
+        case 13: // general protection fault
+            printk("\r\nGeneral Protection Fault: %d\r\n", error_code);
+            asm("hlt;");
+            break;
+
+        case 128:// software interrupt
+            printk("\r\nSoftware Interrupt Encountered\r\n");
+            break;
+        
+        default:
+            printk("\r\nUncaught Interrupt: %d\r\n", irq_num);
+            asm("hlt;");
+            break;
+    }
     // End of interrupt command -- only on hardware interrupts
-    PIC_sendEOI(irq_num);
+    // PIC_sendEOI(irq_num);
+    interrupt_status = true;
+    asm("sti");
     return;
 }
 
