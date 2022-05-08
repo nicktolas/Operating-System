@@ -6,6 +6,9 @@
 #include "isr_func_headers.h"
 
 struct Call_Gate_Descriptor Int_Desc_Table_Entries[256] = {0};
+struct Task_State_Segment TSS;
+struct TSS_Descriptor TSS_desc;
+
 
 void interrupts_init(void)
 {
@@ -28,6 +31,15 @@ void idt_init(void)
     // enable interrupts
     interrupt_status = true;
     asm("STI");
+    return;
+}
+
+void setup_TSS(void)
+{
+    // Setup the descriptor values to map to a valid entry
+    TSS_desc->zero = 0;
+    TSS_desc->zero_two = 0;
+    TSS_desc->
     return;
 }
 
