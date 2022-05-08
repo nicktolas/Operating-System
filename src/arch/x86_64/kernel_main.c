@@ -18,7 +18,7 @@ void kmain(void)
     interrupts_init();
     keyboard_init();
     enable_int_irq();
-
+    asm("STI");
     
     asm("int $128");
     // test_printk();

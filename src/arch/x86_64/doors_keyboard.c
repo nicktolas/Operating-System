@@ -80,7 +80,7 @@ void keyboard_loop(void)
 // reads character from ps2 controller - called only from interrupt context
 void keyboard_consume_byte(void)
 {
-    char byte_read = ps2_poll_read();
+    char byte_read = inb(PS2_DATA);
     parse_byte(byte_read);
 }
 
