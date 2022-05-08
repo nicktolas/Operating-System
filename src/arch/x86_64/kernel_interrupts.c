@@ -5,6 +5,8 @@
 #include "doors_keyboard.h"
 #include "isr_func_headers.h"
 
+
+
 struct Call_Gate_Descriptor Int_Desc_Table_Entries[256] = {0};
 
 void interrupts_init(void)
@@ -27,7 +29,6 @@ void idt_init(void)
     PIC_init();
     // enable interrupts
     interrupt_status = true;
-    asm("STI");
     return;
 }
 
@@ -83,6 +84,90 @@ void load_idt(void)
     return;
 }
 
+
+void gen_isr_handler(int irq_num, int error_code)
+{
+    // debug
+    // asm ("CLI");
+    interrupt_status = false;
+    switch (irq_num)
+    {
+        case 32: // Programmable Timer Interrupt
+            // printk("\r\nProgrammable Timer Interrupt: %d\r\n", error_code);
+            PIC_sendEOI(0);
+            break;
+
+        case 33: //keyboard interrupt
+            keyboard_int_handler();
+            PIC_sendEOI(1);
+            break;
+        
+        case 13: // general protection fault
+            printk("\r\nGeneral Protection Fault: %d\r\n", error_code);
+            asm("hlt;");
+            break;
+
+        case 128:// software interrupt
+            printk("\r\nSoftware Interrupt Encountered\r\n");
+            break;
+        
+        default:
+            printk("\r\nUncaught Interrupt: %d\r\n", irq_num);
+            asm("hlt;");
+            break;
+    }
+    interrupt_status = true;
+    // asm("sti");
+    return;
+}
+
+// PIC end of interupt call
+void PIC_sendEOI(unsigned char irq)
+{
+
+	if(irq >= 8)
+    {
+        asm("out %0, %1; out %0, %2" : : "a"(PIC_EOI), "Nd"(PIC2_COMMAND), "Nd"(PIC1_COMMAND));
+        // outb(PIC2_COMMAND,PIC_EOI);
+    }
+    else
+    {
+        asm volatile ( "out %0, %1" : : "a"(PIC_EOI), "Nd"(PIC1_COMMAND) );
+        // outb(PIC1_COMMAND,PIC_EOI);
+    }
+}
+
+
+void IRQ_set_mask(unsigned char IRQline)
+{
+    uint16_t port;
+    uint8_t value;
+ 
+    if(IRQline < 8) {
+        port = PIC1_DATA;
+    } else {
+        port = PIC2_DATA;
+        IRQline -= 8;
+    }
+    value = inb(port) | (1 << IRQline);
+    outb(port, value);        
+}
+ 
+void IRQ_clear_mask(unsigned char IRQline)
+{
+    uint16_t port;
+    uint8_t value;
+ 
+    if(IRQline < 8) {
+        port = PIC1_DATA;
+    } else {
+        port = PIC2_DATA;
+        IRQline -= 8;
+    }
+    value = inb(port) & ~(1 << IRQline);
+    outb(port, value);        
+}
+
 /*
 arguments:
 	offset1 - vector offset for master PIC
@@ -118,46 +203,6 @@ void PIC_remap(int offset1, int offset2)
 	outb(PIC2_DATA, a2);
 }
 
-// PIC end of interupt call
-void PIC_sendEOI(unsigned char irq)
-{
-	if(irq >= 8)
-		outb(PIC2_COMMAND,PIC_EOI);
- 
-	outb(PIC1_COMMAND,PIC_EOI);
-}
-
-
-void IRQ_set_mask(unsigned char IRQline)
-{
-    uint16_t port;
-    uint8_t value;
- 
-    if(IRQline < 8) {
-        port = PIC1_DATA;
-    } else {
-        port = PIC2_DATA;
-        IRQline -= 8;
-    }
-    value = inb(port) | (1 << IRQline);
-    outb(port, value);        
-}
- 
-void IRQ_clear_mask(unsigned char IRQline)
-{
-    uint16_t port;
-    uint8_t value;
- 
-    if(IRQline < 8) {
-        port = PIC1_DATA;
-    } else {
-        port = PIC2_DATA;
-        IRQline -= 8;
-    }
-    value = inb(port) & ~(1 << IRQline);
-    outb(port, value);        
-}
-
 /* Helper func */
 uint16_t __pic_get_irq_reg(int ocw3)
 {
@@ -180,36 +225,7 @@ uint16_t pic_get_isr(void)
     return __pic_get_irq_reg(PIC_READ_ISR);
 }
 
-void gen_isr_handler(int irq_num, int error_code)
-{
-    // debug
-    asm ("CLI;");
-    interrupt_status = false;
-    switch (irq_num)
-    {
-        case 33: //keyboard interrupt
-            keyboard_int_handler();
-            PIC_sendEOI(1);
-            break;
-        
-        case 13: // general protection fault
-            printk("\r\nGeneral Protection Fault: %d\r\n", error_code);
-            asm("hlt;");
-            break;
 
-        case 128:// software interrupt
-            printk("\r\nSoftware Interrupt Encountered\r\n");
-            break;
-        
-        default:
-            printk("\r\nUncaught Interrupt: %d\r\n", irq_num);
-            asm("hlt;");
-            break;
-    }
-    interrupt_status = true;
-    asm("sti");
-    return;
-}
 
 // Occupies all entries of the IDT with their asm entry point in the IDT
 void occupy_idt(void)
