@@ -26,6 +26,7 @@
 #define PIC_SREMAP 0x70 /* remaps to 0x70 - 0x77 */
 #define MASK_BITS_L32 0xFFFFFFFF
 #define MASK_BITS_L16 0xFFFF
+#define MASK_BITS_L24 0xFFFFFF
 #define CGD_TRAP 1
 #define CGD_INT 0
 

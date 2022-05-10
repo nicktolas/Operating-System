@@ -10,7 +10,9 @@
 struct Call_Gate_Descriptor Int_Desc_Table_Entries[256] = {0};
 struct Task_State_Segment TSS;
 struct TSS_Descriptor TSS_desc;
-
+char GP_Int_Stack[4096] = {0};
+char PF_Int_Stack[4096] = {0};
+char DF_Int_Stack[4096] = {0};
 
 void interrupts_init(void)
 {
@@ -37,10 +39,33 @@ void idt_init(void)
 
 void setup_TSS(void)
 {
-    // Setup the descriptor values to map to a valid entry
-    TSS_desc->zero = 0;
-    TSS_desc->zero_two = 0;
-    TSS_desc->
+    /* Setup the TSS descriptor values to map to a valid entry for GDT
+       Some of the entries are not needed to be filled*/
+    TSS_desc.segement_limit_bot = ((uint64_t)(&TSS + 1) - 1) & MASK_BITS_L16;
+    TSS_desc.base_addr_L16 = (uint64_t)&TSS & MASK_BITS_L16;
+    TSS_desc.base_addr_MidL8 = ((uint64_t)&TSS & MASK_BITS_L24) >> 16;
+    TSS_desc.type = 9;
+    TSS_desc.zero = 0;
+    TSS_desc.dpl = 0;
+    TSS_desc.present = 1;
+    TSS_desc.base_addr_MidH8 = ((uint64_t)&TSS & MASK_BITS_L32) >> 24;
+    TSS_desc.base_addr_H32 = (uint64_t)&TSS >> 32;
+    TSS_desc.zero_two = 0;
+
+    /* Configures the segement itself with valid stacks for each fault */
+    TSS.ist1_low = (uint64_t)&GP_Int_Stack & MASK_BITS_L32;
+    TSS.ist1_high = (uint64_t)&GP_Int_Stack >> 32;
+    // TSS.rsp0_low = ((uint64_t)(&GP_Int_Stack + 1) - 1) & MASK_BITS_L32;
+    // TSS.rsp0_high = ((uint64_t)(&GP_Int_Stack + 1) - 1) >> 32;
+    TSS.ist2_low = (uint64_t)&DF_Int_Stack & MASK_BITS_L32;
+    TSS.ist2_high = (uint64_t)&DF_Int_Stack >> 32;
+    // TSS.rsp0_low = ((uint64_t)(&GP_Int_Stack + 1) - 1) & MASK_BITS_L32;
+    // TSS.rsp0_high = ((uint64_t)(&GP_Int_Stack + 1) - 1) >> 32;
+    TSS.ist3_low = (uint64_t)&PF_Int_Stack & MASK_BITS_L32;
+    TSS.ist3_high = (uint64_t)&PF_Int_Stack >> 32;
+
+    // load segement into the gdt, moves 64 bit addr into reg and loads it
+    asm("ltr %0"::"m"(TSS_desc):);
     return;
 }
 
@@ -328,7 +353,7 @@ void occupy_idt(void)
     Int_Desc_Table_Entries[8].protection_level = 0;
     Int_Desc_Table_Entries[8].stack_target = 0;
     Int_Desc_Table_Entries[8].int_trap_gate = CGD_INT;
-    Int_Desc_Table_Entries[8].target_selector = 8;
+    Int_Desc_Table_Entries[8].target_selector = 2;
     Int_Desc_Table_Entries[8].target_offset_top = ((uint64_t) &asm_isr_8) >> 32;
     Int_Desc_Table_Entries[8].target_offset_mid = (((uint64_t) &asm_isr_8) & MASK_BITS_L32) >> 16;
     Int_Desc_Table_Entries[8].target_offset_bot = (((uint64_t) &asm_isr_8) & MASK_BITS_L16);
@@ -376,7 +401,7 @@ void occupy_idt(void)
     Int_Desc_Table_Entries[13].present = 1;
     Int_Desc_Table_Entries[13].one = 7;
     Int_Desc_Table_Entries[13].protection_level = 0;
-    Int_Desc_Table_Entries[13].stack_target = 0;
+    Int_Desc_Table_Entries[13].stack_target = 1;
     Int_Desc_Table_Entries[13].int_trap_gate = CGD_INT;
     Int_Desc_Table_Entries[13].target_selector = 8;
     Int_Desc_Table_Entries[13].target_offset_top = ((uint64_t) &asm_isr_13) >> 32;
@@ -388,7 +413,7 @@ void occupy_idt(void)
     Int_Desc_Table_Entries[14].protection_level = 0;
     Int_Desc_Table_Entries[14].stack_target = 0;
     Int_Desc_Table_Entries[14].int_trap_gate = CGD_INT;
-    Int_Desc_Table_Entries[14].target_selector = 8;
+    Int_Desc_Table_Entries[14].target_selector = 3;
     Int_Desc_Table_Entries[14].target_offset_top = ((uint64_t) &asm_isr_14) >> 32;
     Int_Desc_Table_Entries[14].target_offset_mid = (((uint64_t) &asm_isr_14) & MASK_BITS_L32) >> 16;
     Int_Desc_Table_Entries[14].target_offset_bot = (((uint64_t) &asm_isr_14) & MASK_BITS_L16);

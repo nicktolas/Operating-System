@@ -8,7 +8,7 @@
 void kmain(void)
 {
     int hold;
-
+    
     VGA_background();
     // infinite loop for debugging purposes
     hold = 1;
@@ -20,10 +20,13 @@ void kmain(void)
     enable_int_irq();
     asm("STI");
     
-    asm("int $128");
+    int *deadbeef = (void*)0xdeadbeef;
+    // goodbye world
+    *deadbeef = 69;
+    
     // test_printk();
     // test_keyboard();
-    
+    // asm("int $128");
     while(1)
     {
         asm("hlt");
