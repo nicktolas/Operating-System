@@ -22,7 +22,7 @@ void kmain(void)
     
     int *deadbeef = (void*)0xdeadbeef;
     // goodbye world
-    *deadbeef = 69;
+    *deadbeef = 1234;
     
     // test_printk();
     // test_keyboard();

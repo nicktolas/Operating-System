@@ -55,7 +55,7 @@ void keyboard_init(void)
     l_shift = false; 
     r_shift = false;
     secondary = false;
-    ps2_poll_read();
+    // ps2_poll_read();
     return;
 }
 

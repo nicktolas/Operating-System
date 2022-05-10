@@ -1,4 +1,5 @@
 global start
+global gdt64
 extern long_mode_start
 
 section .text
@@ -145,10 +146,13 @@ error:
 
 section .rodata
 gdt64:
-    dq 0 ; zero entry
-    dq (1<<43) | (1<<44) | (1<<47) | (1<<53) ; code segment
+    dq 0 ; zero entry 4
+    dq (1<<43) | (1<<44) | (1<<47) | (1<<53) ; code segment 8
 .code: equ $ - gdt64 ; new
-    dq (1<<43) | (1<<44) | (1<<47) | (1<<53) ; code segment
+    dq (1<<43) | (1<<44) | (1<<47) | (1<<53) ; code segment 10
+.TSS: 
+    dq 0; lowest 32 bit 18
+    dq 0; highest 32 bit 
 .pointer:
     dw $ - gdt64 - 1
     dq gdt64
