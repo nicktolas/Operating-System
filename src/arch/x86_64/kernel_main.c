@@ -4,6 +4,7 @@
 #include "kernel_testing.h"
 #include "doors_keyboard.h"
 #include "kernel_interrupts.h"
+#include "kernel_gdt.h"
 
 void kmain(void)
 {
@@ -15,6 +16,9 @@ void kmain(void)
     while(hold){;}
 
     VGA_clear();
+    // sets up gdt
+    gdt_assign_segments();
+    // Interrupts should now be on new gdt
     interrupts_init();
     keyboard_init();
     enable_int_irq();

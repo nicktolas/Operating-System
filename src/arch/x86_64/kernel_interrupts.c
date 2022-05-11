@@ -5,11 +5,8 @@
 #include "doors_keyboard.h"
 #include "isr_func_headers.h"
 
-extern void* gdt64;
 
 struct Call_Gate_Descriptor Int_Desc_Table_Entries[256] = {0};
-
-
 
 void interrupts_init(void)
 {

@@ -1,4 +1,5 @@
 #ifndef KERNEL_GDT
+#include "kernel.h"
 #define KERNEL_GDT
 #define GDT_TSS_OFFSET 0x28
 #define GDT_NUM_SEGMENTS 8
@@ -63,9 +64,42 @@ struct TSS_Descriptor
     uint8_t reserved_three:3;
     uint16_t reserved_four;
 }__attribute__((packed));
-#endif
 
+struct Task_State_Segment
+{
+    uint32_t reserved_one;
+    uint32_t rsp0_low;
+    uint32_t rsp0_high;
+    uint32_t rsp1_low;
+    uint32_t rsp1_high;
+    uint32_t rsp2_low;
+    uint32_t rsp2_high;
+    uint32_t reserved_two;
+    uint32_t reserved_three;
+    uint32_t ist1_low;
+    uint32_t ist1_high;
+    uint32_t ist2_low;
+    uint32_t ist2_high;
+    uint32_t ist3_low;
+    uint32_t ist3_high;
+    uint32_t ist4_low;
+    uint32_t ist4_high;
+    uint32_t ist5_low;
+    uint32_t ist5_high;
+    uint32_t ist6_low;
+    uint32_t ist6_high;
+    uint32_t ist7_low;
+    uint32_t ist7_high;
+    uint32_t reserved_four;
+    uint32_t reserved_five;
+    uint16_t reserved_six;
+    uint16_t io_map_base_addr;
+}__attribute__((packed));
 
 void gdt_assign_segments(void);
 void gdt_setup_ksegments(void);
 void gdt_setup_TSS(void);
+void load_GDT_TSS(void);
+void reload_cs_reg();
+
+#endif

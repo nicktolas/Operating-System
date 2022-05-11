@@ -1,4 +1,5 @@
 #ifndef KERNEL_INTERRUPTS
+#include "kernel.h"
 #define KERNEL_INTERRUPTS
 #define IDT_LENGTH 256
 #define PIC1 0x20		/* IO base address for master PIC */
@@ -45,59 +46,6 @@ struct Call_Gate_Descriptor
     uint16_t target_offset_mid;
     uint32_t target_offset_top;
     uint32_t reserved_one;  
-}__attribute__((packed));
-
-// Structure used for the TSS
-struct TSS_Descriptor
-{
-    uint16_t segement_limit_bot;
-    uint16_t base_addr_L16;
-    uint8_t base_addr_MidL8;
-    uint8_t type:4;
-    uint8_t zero:1;
-    uint8_t dpl:2;
-    uint8_t present:1;
-    uint8_t segement_limit_top:4;
-    uint8_t avl:1;
-    uint8_t reserved_one:2;
-    uint8_t granularity;
-    uint8_t base_addr_MidH8;
-    uint32_t base_addr_H32;
-    uint8_t reserved_two;
-    uint8_t zero_two:5;
-    uint8_t reserved_three:3;
-    uint16_t reserved_four;
-}__attribute__((packed));
-
-struct Task_State_Segment
-{
-    uint32_t reserved_one;
-    uint32_t rsp0_low;
-    uint32_t rsp0_high;
-    uint32_t rsp1_low;
-    uint32_t rsp1_high;
-    uint32_t rsp2_low;
-    uint32_t rsp2_high;
-    uint32_t reserved_two;
-    uint32_t reserved_three;
-    uint32_t ist1_low;
-    uint32_t ist1_high;
-    uint32_t ist2_low;
-    uint32_t ist2_high;
-    uint32_t ist3_low;
-    uint32_t ist3_high;
-    uint32_t ist4_low;
-    uint32_t ist4_high;
-    uint32_t ist5_low;
-    uint32_t ist5_high;
-    uint32_t ist6_low;
-    uint32_t ist6_high;
-    uint32_t ist7_low;
-    uint32_t ist7_high;
-    uint32_t reserved_four;
-    uint32_t reserved_five;
-    uint16_t reserved_six;
-    uint16_t io_map_base_addr;
 }__attribute__((packed));
 
 // true represents interrupts on, false represents they are off
