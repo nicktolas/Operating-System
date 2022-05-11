@@ -24,7 +24,7 @@ void load_GDT_TSS()
     gdt_ptr.base = &(GDT.segments);
     asm ("lgdt %0" :: "m"(gdt_ptr));
     asm("ltr %0":: "m"(tss_offset));
-    reload_cs_reg();
+    // reload_cs_reg();
     return;
 }
 
@@ -43,6 +43,8 @@ void gdt_assign_segments()
     gdt_setup_ksegments();
     //TODO: Setup UserSpace Segements
     gdt_setup_TSS();
+
+    load_GDT_TSS();
     return;
 }
 
@@ -56,13 +58,13 @@ void gdt_setup_ksegments()
     // Kernel Code Segment
     segment = (struct Segment_Descriptor*) &(GDT.segments[GDT_KCODE_SEGMENT]);
     memset(segment, 0, 4);
-    segment->access_byte = 0x4E; // 1001110
+    segment->access_byte = 0x9A; // 10011010
     segment->flags = 0x2; // 0010
 
     // Kernel Data Segment
     segment = (struct Segment_Descriptor*) &(GDT.segments[GDT_KDATA_SEGMENT]);
     memset(segment, 0, 4);
-    segment->access_byte = 0x4A; // 1001010
+    segment->access_byte = 0x92; // 10010010
     segment->flags = 0x2; // 0010
     return;
 }
@@ -81,11 +83,8 @@ void gdt_setup_TSS()
 
     // setup the Task State Segmment
     /* Configures the segement itself with valid stacks for each fault */
-    TSS.ist1_low = (uint64_t)&GP_Int_Stack & MASK_BITS_L32;
-    TSS.ist1_high = (uint64_t)&GP_Int_Stack >> 32;
-    TSS.ist2_low = (uint64_t)&DF_Int_Stack & MASK_BITS_L32;
-    TSS.ist2_high = (uint64_t)&DF_Int_Stack >> 32;
-    TSS.ist3_low = (uint64_t)&PF_Int_Stack & MASK_BITS_L32;
-    TSS.ist3_high = (uint64_t)&PF_Int_Stack >> 32;
+    TSS.ist1 = ((uint64_t)&GP_Int_Stack)+4088;
+    TSS.ist2 = ((uint64_t)&DF_Int_Stack)+4088;
+    TSS.ist3 = ((uint64_t)&PF_Int_Stack)+4088;
     return;
 }

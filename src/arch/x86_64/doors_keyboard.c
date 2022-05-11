@@ -59,6 +59,7 @@ void keyboard_init(void)
     return;
 }
 
+// Loops the keybaord for processing input from keyboard and printing to screen.
 void keyboard_loop(void)
 {
     int hold = 1;

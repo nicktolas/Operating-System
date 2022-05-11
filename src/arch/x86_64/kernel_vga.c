@@ -21,13 +21,13 @@ void set_VGA_color(unsigned int foreground, unsigned int background)
 // Prints the provided character to current position in the VGA console. 
 void VGA_display_char(char c)
 {
-    bool int_toggle = false;
-    if(interrupt_status == true)
-    {
-        interrupt_off();
-        interrupt_status = false;
-        int_toggle = true;
-    }
+    // bool int_toggle = false;
+    // if(interrupt_status == true)
+    // {
+    //     interrupt_off();
+    //     interrupt_status = false;
+    //     int_toggle = true;
+    // }
     if(c == '\n')
     {
         vga_cursor_row++;
@@ -56,11 +56,11 @@ void VGA_display_char(char c)
             vga_cursor = 0;
         }
     }
-    if (int_toggle == true)
-    {
-        interrupt_status = true;
-        interrupt_on();
-    }
+    // if (int_toggle == true)
+    // {
+    //     interrupt_status = true;
+    //     interrupt_on();
+    // }
     return;
 }
 

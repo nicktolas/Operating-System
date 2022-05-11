@@ -318,9 +318,9 @@ void occupy_idt(void)
     Int_Desc_Table_Entries[8].present = 1;
     Int_Desc_Table_Entries[8].one = 7;
     Int_Desc_Table_Entries[8].protection_level = 0;
-    Int_Desc_Table_Entries[8].stack_target = 0;
+    Int_Desc_Table_Entries[8].stack_target = 2;
     Int_Desc_Table_Entries[8].int_trap_gate = CGD_INT;
-    Int_Desc_Table_Entries[8].target_selector = 2;
+    Int_Desc_Table_Entries[8].target_selector = 8;
     Int_Desc_Table_Entries[8].target_offset_top = ((uint64_t) &asm_isr_8) >> 32;
     Int_Desc_Table_Entries[8].target_offset_mid = (((uint64_t) &asm_isr_8) & MASK_BITS_L32) >> 16;
     Int_Desc_Table_Entries[8].target_offset_bot = (((uint64_t) &asm_isr_8) & MASK_BITS_L16);
@@ -378,9 +378,9 @@ void occupy_idt(void)
     Int_Desc_Table_Entries[14].present = 1;
     Int_Desc_Table_Entries[14].one = 7;
     Int_Desc_Table_Entries[14].protection_level = 0;
-    Int_Desc_Table_Entries[14].stack_target = 0;
+    Int_Desc_Table_Entries[14].stack_target = 3;
     Int_Desc_Table_Entries[14].int_trap_gate = CGD_INT;
-    Int_Desc_Table_Entries[14].target_selector = 3;
+    Int_Desc_Table_Entries[14].target_selector = 8;
     Int_Desc_Table_Entries[14].target_offset_top = ((uint64_t) &asm_isr_14) >> 32;
     Int_Desc_Table_Entries[14].target_offset_mid = (((uint64_t) &asm_isr_14) & MASK_BITS_L32) >> 16;
     Int_Desc_Table_Entries[14].target_offset_bot = (((uint64_t) &asm_isr_14) & MASK_BITS_L16);
