@@ -8,11 +8,7 @@
 extern void* gdt64;
 
 struct Call_Gate_Descriptor Int_Desc_Table_Entries[256] = {0};
-struct Task_State_Segment TSS;
-struct TSS_Descriptor* TSS_desc = (struct TSS_Descriptor*) (&gdt64+0x18);
-char GP_Int_Stack[4096] = {0};
-char PF_Int_Stack[4096] = {0};
-char DF_Int_Stack[4096] = {0};
+
 
 
 void interrupts_init(void)
@@ -35,38 +31,6 @@ void idt_init(void)
     PIC_init();
     // enable interrupts
     interrupt_status = true;
-    return;
-}
-
-void setup_TSS(void)
-{
-    // Offset of the TSS in the GDT
-    int TSS_offset = 0x18;
-
-    /* Setup the TSS descriptor values to map to a valid entry for GDT
-       Some of the entries are not needed to be filled*/
-    TSS_desc->segement_limit_bot = sizeof(TSS) & MASK_BITS_L16;
-    TSS_desc->base_addr_L16 = (uint64_t)&TSS & MASK_BITS_L16;
-    TSS_desc->base_addr_MidL8 = ((uint64_t)&TSS & MASK_BITS_L24) >> 16;
-    TSS_desc->type = 9;
-    TSS_desc->zero = 0;
-    TSS_desc->dpl = 0;
-    TSS_desc->present = 1;
-    TSS_desc->base_addr_MidH8 = ((uint64_t)&TSS & MASK_BITS_L32) >> 24;
-    TSS_desc->base_addr_H32 = (uint64_t)&TSS >> 32;
-    TSS_desc->zero_two = 0;
-
-
-    /* Configures the segement itself with valid stacks for each fault */
-    TSS.ist1_low = (uint64_t)&GP_Int_Stack & MASK_BITS_L32;
-    TSS.ist1_high = (uint64_t)&GP_Int_Stack >> 32;
-    TSS.ist2_low = (uint64_t)&DF_Int_Stack & MASK_BITS_L32;
-    TSS.ist2_high = (uint64_t)&DF_Int_Stack >> 32;
-    TSS.ist3_low = (uint64_t)&PF_Int_Stack & MASK_BITS_L32;
-    TSS.ist3_high = (uint64_t)&PF_Int_Stack >> 32;
-
-    // load segment into the ltr register
-    asm("ltr %0":: "m"(TSS_offset));
     return;
 }
 
