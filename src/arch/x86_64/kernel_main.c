@@ -8,28 +8,25 @@
 
 void kmain(void)
 {
-    int hold;
+
     
     VGA_background();
     // infinite loop for debugging purposes
-    hold = 1;
+    int hold = 1;
     while(hold){;}
-
     VGA_clear();
-    // sets up gdt
     gdt_assign_segments();
-    // Interrupts should now be on new gdt
     interrupts_init();
     keyboard_init();
     enable_int_irq();
+
+    
     asm("STI");
     
-    int *deadbeef = (void*)0xdeadbeef;
-    // goodbye world
-    *deadbeef = 1234;
-    
-    // test_printk();
-    // test_keyboard();
+    // int *deadbeef = (void*)0xdeadbeef;
+    // // goodbye world
+    // *deadbeef = 1234;
+
     // asm("int $128");
     while(1)
     {

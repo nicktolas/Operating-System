@@ -30,6 +30,26 @@
 #define MASK_BITS_L24 0xFFFFFF
 #define CGD_TRAP 1
 #define CGD_INT 0
+#define CLI \
+    bool interrupt_swapped = false; \
+    uint64_t eflags_cli; \
+    asm("pushfq; pop %0":"=r"(eflags_cli)::); \
+    if ((eflags_cli & (1 << 9)) != 0){ \
+        asm("CLI;"); \
+        interrupt_swapped = true; \
+    } \
+
+#define STI \
+    uint64_t eflags_sti; \
+    asm("pushfq; pop %0":"=r"(eflags_sti)::); \
+    if ((eflags_sti & (1 << 9)) == 0){ \
+        asm("STI;"); \
+    } \
+
+#define STI_post_CLI \
+if (interrupt_swapped){ \
+        asm("STI;"); \
+    } \
 
 // used for the IDT
 struct Call_Gate_Descriptor
@@ -47,9 +67,6 @@ struct Call_Gate_Descriptor
     uint32_t target_offset_top;
     uint32_t reserved_one;  
 }__attribute__((packed));
-
-// true represents interrupts on, false represents they are off
-bool interrupt_status;
 
 void interrupts_init(void);
 void idt_init(void);

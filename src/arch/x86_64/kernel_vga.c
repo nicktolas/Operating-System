@@ -21,13 +21,7 @@ void set_VGA_color(unsigned int foreground, unsigned int background)
 // Prints the provided character to current position in the VGA console. 
 void VGA_display_char(char c)
 {
-    // bool int_toggle = false;
-    // if(interrupt_status == true)
-    // {
-    //     interrupt_off();
-    //     interrupt_status = false;
-    //     int_toggle = true;
-    // }
+    CLI;
     if(c == '\n')
     {
         vga_cursor_row++;
@@ -56,11 +50,7 @@ void VGA_display_char(char c)
             vga_cursor = 0;
         }
     }
-    // if (int_toggle == true)
-    // {
-    //     interrupt_status = true;
-    //     interrupt_on();
-    // }
+    STI_post_CLI;
     return;
 }
 
@@ -169,6 +159,7 @@ void VGA_clear(void)
     int i;
     set_VGA_color(K_VGA_COLOR_LGREY, K_VGA_COLOR_BLACK);
     vga_cursor = 0;
+    vga_cursor_row = 0;
     for(i=0; i < (vga_height * vga_width); i++)
     {
         VGA_display_char(' ');

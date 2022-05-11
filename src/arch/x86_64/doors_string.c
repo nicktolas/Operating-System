@@ -10,14 +10,8 @@ int printk(const char *fmt, ...)
     int return_val;
     va_list args_list;
     va_start(args_list, fmt);
-    // bool int_toggle = false;
     return_val = 0;
-    // if(interrupt_status == true)
-    // {
-    //     interrupt_off();
-    //     interrupt_status = false;
-    //     int_toggle = true;
-    // }
+    CLI;
     for(i=0; i < strlen(fmt); i++)
     {
         // format specfier - call respective function and double iterate the count
@@ -117,11 +111,7 @@ int printk(const char *fmt, ...)
         }
     }
     va_end(args_list);
-    // if(int_toggle == true)
-    // {
-    //     interrupt_status = true;
-    //     interrupt_on();
-    // }
+    STI_post_CLI;
     return return_val;
 }
 // } __attribute__ ((format (printf, 1, 2)));

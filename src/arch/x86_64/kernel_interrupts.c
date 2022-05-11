@@ -27,7 +27,6 @@ void idt_init(void)
     // enable interupts in PIC
     PIC_init();
     // enable interrupts
-    interrupt_status = true;
     return;
 }
 
@@ -83,14 +82,27 @@ void load_idt(void)
     return;
 }
 
-
 void gen_isr_handler(int irq_num, int error_code)
 {
     // debug
-    // asm ("CLI");
-    interrupt_status = false;
+    CLI;
     switch (irq_num)
     {
+        case 8: //Double Fault
+            printk("\r\nDouble Fault: %d\r\n", error_code);
+            asm("hlt");
+            break;
+        
+        case 13: // general protection fault
+            printk("\r\nGeneral Protection Fault: %d\r\n", error_code);
+            asm("hlt;");
+            break;
+
+        case 14: //page fault
+            printk("\r\nPage Fault: %d\r\n", error_code);
+            asm("hlt;");
+            break;
+        
         case 32: // Programmable Timer Interrupt
             // printk("\r\nProgrammable Timer Interrupt: %d\r\n", error_code);
             PIC_sendEOI(0);
@@ -99,16 +111,6 @@ void gen_isr_handler(int irq_num, int error_code)
         case 33: //keyboard interrupt
             keyboard_int_handler();
             PIC_sendEOI(1);
-            break;
-        
-        case 14: //page fault
-            printk("\r\nPage Fault: %d\r\n", error_code);
-            asm("hlt;");
-            break;
-
-        case 13: // general protection fault
-            printk("\r\nGeneral Protection Fault: %d\r\n", error_code);
-            asm("hlt;");
             break;
 
         case 128:// software interrupt
@@ -120,8 +122,7 @@ void gen_isr_handler(int irq_num, int error_code)
             asm("hlt;");
             break;
     }
-    interrupt_status = true;
-    // asm("sti");
+    STI_post_CLI;
     return;
 }
 
