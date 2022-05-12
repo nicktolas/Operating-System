@@ -1,7 +1,7 @@
 #ifndef KERNEL_SERIAL
 #define KERNEL_SERIAL
 #include "kernel.h"
-#define SERIAL_BUFFER_SIZE 16
+#define SERIAL_BUFFER_SIZE 4096
 
 struct State
 {
@@ -10,7 +10,7 @@ struct State
     char *producer;
     int type;
     void* consumer_function;
-}
+};
 
 // State Buffer Functions
 void init_state(struct State *state);

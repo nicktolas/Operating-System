@@ -23,11 +23,11 @@ void kmain(void)
     
     asm("STI");
     
-    // int *deadbeef = (void*)0xdeadbeef;
-    // // goodbye world
-    // *deadbeef = 1234;
+    int *deadbeef = (void*)0xdeadbeef;
+    // goodbye world
+    *deadbeef = 1234;
 
-    // asm("int $128");
+    asm("int $128");
     while(1)
     {
         asm("hlt");
