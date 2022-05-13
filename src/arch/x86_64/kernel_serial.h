@@ -13,6 +13,7 @@ struct State_Serial
     char buff[SERIAL_BUFFER_SIZE];
     char *consumer;
     char *producer;
+    int avail_slots;
 };
 
 // State Buffer Functions

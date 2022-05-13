@@ -4,6 +4,7 @@
 #include "doors_string.h"
 #include "doors_keyboard.h"
 #include "isr_func_headers.h"
+#include "kernel_serial.h"
 
 
 struct Call_Gate_Descriptor Int_Desc_Table_Entries[256] = {0};

@@ -20,14 +20,9 @@ void kmain(void)
     keyboard_init();
     enable_int_irq();
 
-    
     asm("STI"); // enable interrupts
     
-    // int *deadbeef = (void*)0xdeadbeef;
-    // // goodbye world
-    // *deadbeef = 1234;
-
-    // asm("int $128");
+    SER_write("abcdefg", strlen("abcdefg"));
     while(1)
     {
         asm("hlt");

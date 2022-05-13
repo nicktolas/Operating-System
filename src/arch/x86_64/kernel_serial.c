@@ -9,6 +9,7 @@ void init_state_serial(struct State_Serial *state)
 {
     state->consumer = &state->buff[0];
     state->producer = &state->buff[0];
+    state->avail_slots = SERIAL_BUFFER_SIZE-1;
     return;
 }
 
@@ -36,6 +37,9 @@ int init_serial_device()
    // If serial is not faulty set it in normal operation mode
    // (not-loopback with IRQs enabled and OUT#1 and OUT#2 bits enabled)
     outb(SERIAL_OUT_PORT + 4, 0x0F);
+
+    // interrupt enable
+    outb(SERIAL_OUT_PORT + 1, 0x06); // 110
     return 0;
 }
 
@@ -46,10 +50,12 @@ void consumer_next(struct State_Serial *state)
     CLI;
     if(state->consumer == state->producer)
     {
+        // need to clear the interrupt still
         STI_post_CLI;
         return;
     }
     serial_consume(state);
+    state->avail_slots ++;
     // serial write
     state->consumer++;
     if(state->consumer >= &state->buff[SERIAL_BUFFER_SIZE])
@@ -63,6 +69,7 @@ void consumer_next(struct State_Serial *state)
 int producer_add_char(char toAdd, struct State_Serial *state)
 {
     CLI;
+    /* if adding char would set both pointers equal */
     if(state->producer == state->consumer - 1 || \
     (state->consumer == &state->buff[0] && state->producer == &state->buff[SERIAL_BUFFER_SIZE-1]) )
     {
@@ -70,6 +77,7 @@ int producer_add_char(char toAdd, struct State_Serial *state)
         return 0;
     }
     *state->producer++ = toAdd;
+    state->avail_slots--;
     if(state->producer >= &state->buff[SERIAL_BUFFER_SIZE])
     {
         state->producer = &state->buff[0];
@@ -83,7 +91,7 @@ int producer_add_char(char toAdd, struct State_Serial *state)
    Only ever called while interrupts are off */
 void serial_consume(struct State_Serial *state)
 {
-    char out_char = state->consumer;
+    char out_char = state->consumer[0];
     outb(SERIAL_OUT_PORT,out_char);
     return;
 }
@@ -100,8 +108,7 @@ void serial_int_handler()
     }
     else if((read_byte & SERIAL_IRR_TX_INT) == SERIAL_IRR_TX_INT) // transmitter int
     {
-        // TODO: Ensure flags set properly to read THR and reset them if needed.
-        consumer_next(&serial_state); // reading THR clears int
+        consumer_next(&serial_state); // writing THR clears int
     }
     return;
 }
@@ -118,10 +125,17 @@ void SER_init(void)
    This is a interrupt based process. Will not be instant. */
 int SER_write(const char *buff, int len)
 {
+    CLI; // needs locking to prevent avail_slots race conditions
     int i;
+    if (len >= serial_state.avail_slots)
+    {
+        STI_post_CLI;
+        return -1;
+    }
     for (i=0; i<len; i++) // TODO: account for when someone writes something too large. 
     {
         producer_add_char(buff[i], &serial_state);
     }
+    STI_post_CLI;
     return 0;
 }
