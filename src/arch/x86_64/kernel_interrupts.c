@@ -37,14 +37,12 @@ void keyboard_int_handler()
     return;
 }
 
+/* Sets all PIC lines to off*/
 void PIC_init()
 {
-    // clear enables, set disables
     IRQ_set_mask(0);
-    // enable keyboard
-    IRQ_clear_mask(1);
-    // IRQ_clear_mask(1);
-    IRQ_clear_mask(2);
+    IRQ_set_mask(1);
+    IRQ_set_mask(2);
     IRQ_set_mask(3);
     IRQ_set_mask(4);
     IRQ_set_mask(5);
@@ -64,7 +62,9 @@ void PIC_init()
 // Enables interrupts post intitalization of the hardware itself
 void enable_int_irq()
 {
-    IRQ_clear_mask(1);
+    IRQ_clear_mask(1); // Keyboard
+    IRQ_clear_mask(2); // Cascade
+    IRQ_clear_mask(4); // Serial COM1
     return;
 }
 
@@ -108,11 +108,17 @@ void gen_isr_handler(int irq_num, int error_code)
             PIC_sendEOI(0);
             break;
 
-        case 33: //keyboard interrupt
+        case 33: //Keyboard Interrupt
             keyboard_int_handler();
             PIC_sendEOI(1);
             break;
-
+        
+        case 36: // Serial Interrupt
+            printk("\r\nSerial Interrupt Encountered\r\n");
+            serial_int_handler();
+            PIC_sendEOI(4);
+            break;
+        
         case 128:// software interrupt
             printk("\r\nSoftware Interrupt Encountered\r\n");
             break;

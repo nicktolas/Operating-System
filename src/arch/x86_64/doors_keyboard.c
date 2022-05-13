@@ -636,6 +636,10 @@ void parse_byte(uint8_t byte_read)
             break;
         case RELEASE_PRIMARY_SET:
             break;
+        
+        case 0xAA:
+            break;
+        
         default:
             printk("\r\n Enountered unreocgnized character, Scan Code: %x\r\n", byte_read);
             break;
