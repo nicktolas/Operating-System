@@ -3,6 +3,7 @@
 #include "kernel_vga.h"
 #include "kernel_interrupts.h"
 #include "doors_string.h"
+#include "kernel_serial.h"
 
 int printk(const char *fmt, ...)
 {
@@ -104,6 +105,7 @@ int printk(const char *fmt, ...)
         else
         {
             VGA_display_char(fmt[i]);
+            SER_write(&fmt[i], 1);
         }
         if(return_val != 0)
         {
@@ -124,7 +126,7 @@ void print_int(int i, int base)
     {
         print_hex_prefix();
     }
-    VGA_display_str(itoa(i, string_of_int, base));
+    display_string_wrapper(itoa(i, string_of_int, base));
     return;
 }
 
@@ -135,7 +137,7 @@ void print_uint(unsigned int i, int base)
     {
         print_hex_prefix();
     }
-    VGA_display_str(uitoa(i, string_of_int, base));
+    display_string_wrapper(uitoa(i, string_of_int, base));
     return;
 }
 
@@ -146,7 +148,7 @@ void print_ulong_int(unsigned long int i, int base)
     {
         print_hex_prefix();
     }
-    VGA_display_str(ultoa(i, string_of_int, base));
+    display_string_wrapper(ultoa(i, string_of_int, base));
     return;
 }
 
@@ -157,7 +159,7 @@ void print_long_int(long int i , int base)
     {
         print_hex_prefix();
     }
-    VGA_display_str(ltoa(i, string_of_int, base));
+    display_string_wrapper(ltoa(i, string_of_int, base));
     return;
 }
 
@@ -168,7 +170,7 @@ void print_llong_int(long int i , int base)
     {
         print_hex_prefix();
     }
-    VGA_display_str(lltoa(i, string_of_int, base));
+    display_string_wrapper(lltoa(i, string_of_int, base));
     return;
 }
 
@@ -179,19 +181,20 @@ void print_ullong_int(long int i , int base)
     {
         print_hex_prefix();
     }
-    VGA_display_str(ulltoa(i, string_of_int, base));
+    display_string_wrapper(ulltoa(i, string_of_int, base));
     return;
 }
 
 void print_str(const char * provided_string)
 {
-    VGA_display_str(provided_string);
+    display_string_wrapper(provided_string);
     return;
 }
 
 void print_uchar(unsigned char c)
 {
     VGA_display_char(c);
+    SER_write((char*) &c, 1);
     return;
 }
 
@@ -199,6 +202,14 @@ void print_hex_prefix(void)
 {
     VGA_display_char('0');
     VGA_display_char('x');
+    SER_write("0x", strlen("0x"));
+    return;
+}
+
+void display_string_wrapper(const char* string)
+{
+    VGA_display_str(string);
+    SER_write(string, strlen(string));
     return;
 }
 

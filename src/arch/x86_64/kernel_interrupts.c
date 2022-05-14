@@ -115,7 +115,7 @@ void gen_isr_handler(int irq_num, int error_code)
             break;
         
         case 36: // Serial Interrupt
-            printk("\r\nSerial Interrupt Encountered\r\n");
+            // printk("\r\nSerial Interrupt Encountered\r\n");
             serial_int_handler();
             PIC_sendEOI(4);
             break;

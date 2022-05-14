@@ -10,6 +10,7 @@ void init_state_serial(struct State_Serial *state)
     state->consumer = &state->buff[0];
     state->producer = &state->buff[0];
     state->avail_slots = SERIAL_BUFFER_SIZE-1;
+    state->idle = true;
     return;
 }
 
@@ -39,7 +40,7 @@ int init_serial_device()
     outb(SERIAL_OUT_PORT + 4, 0x0F);
 
     // interrupt enable
-    outb(SERIAL_OUT_PORT + 1, 0x06); // 110
+    outb(SERIAL_OUT_PORT + 1, 0x06);
     return 0;
 }
 
@@ -48,19 +49,29 @@ int init_serial_device()
 void consumer_next(struct State_Serial *state)
 {
     CLI;
-    if(state->consumer == state->producer)
+    if (state->idle == false)
     {
-        // need to clear the interrupt still
-        STI_post_CLI;
-        return;
+        if(THR_line_empty() == 0) // is actually idle
+        {
+            state->idle = true;
+        }
     }
-    serial_consume(state);
-    state->avail_slots ++;
-    // serial write
-    state->consumer++;
-    if(state->consumer >= &state->buff[SERIAL_BUFFER_SIZE])
+    if(state->idle) // if idle
     {
-        state->consumer = &state->buff[0];
+        if(state->consumer == state->producer) // nothing in buffer
+        {
+            state->idle = true;
+            STI_post_CLI;
+            return;
+        }
+        serial_consume(state);
+        state->avail_slots ++;
+
+        state->consumer++;
+        if(state->consumer >= &state->buff[SERIAL_BUFFER_SIZE])
+        {
+            state->consumer = &state->buff[0];
+        }
     }
     STI_post_CLI;
 }
@@ -108,7 +119,8 @@ void serial_int_handler()
     }
     else if((read_byte & SERIAL_IRR_TX_INT) == SERIAL_IRR_TX_INT) // transmitter int
     {
-        consumer_next(&serial_state); // writing THR clears int
+        serial_state.idle = true;
+        consumer_next(&serial_state);
     }
     return;
 }
@@ -125,17 +137,34 @@ void SER_init(void)
    This is a interrupt based process. Will not be instant. */
 int SER_write(const char *buff, int len)
 {
-    CLI; // needs locking to prevent avail_slots race conditions
+    CLI; 
     int i;
-    if (len >= serial_state.avail_slots)
+    // if busy or not enough space for this write
+    if(len >= serial_state.avail_slots)
     {
         STI_post_CLI;
         return -1;
     }
-    for (i=0; i<len; i++) // TODO: account for when someone writes something too large. 
+    for (i=0; i<len; i++)
     {
         producer_add_char(buff[i], &serial_state);
+        // consumer_next(&serial_state);
     }
+    serial_state.idle = false;
+    consumer_next(&serial_state);
+
     STI_post_CLI;
     return 0;
+}
+
+/* Checks to see if the serial device is done transmitting.
+   returns 0 if complete, and the status register value otherwise*/
+int THR_line_empty()
+{
+    char byte_read = inb(SERIAL_OUT_PORT + SERIAL_LINE_STATUS_REG_OFFSET);
+    if((byte_read & 0x60) == 0x60) // 01100000
+    {
+        return 0;
+    }
+    return byte_read;
 }

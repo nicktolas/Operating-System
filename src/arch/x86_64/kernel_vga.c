@@ -3,6 +3,7 @@
 #include "doors_string.h"
 #include "kernel_interrupts.h"
 #include "kernel_vga.h"
+#include "kernel_serial.h"
 
 static unsigned short *vgaBuff = (unsigned short*) K_VGA_BASE_ADDR;
 static int vga_width = 80;

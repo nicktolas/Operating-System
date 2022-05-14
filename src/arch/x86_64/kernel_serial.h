@@ -14,6 +14,7 @@ struct State_Serial
     char *consumer;
     char *producer;
     int avail_slots;
+    bool idle;
 };
 
 // State Buffer Functions
@@ -23,6 +24,7 @@ int producer_add_char(char toAdd, struct State_Serial *state);
 void serial_consume(struct State_Serial *state);
 int init_serial_device();
 void serial_int_handler();
+int THR_line_empty();
 
 // Serial Functions
 void SER_init(void);

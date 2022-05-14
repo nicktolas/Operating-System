@@ -27,4 +27,5 @@ size_t strlen(const char *provided_string);
 const char* strchr(const char *str, int c);
 char* strtok(char *str, int delim);
 char *strncpy(char *restrict dest, const char *restrict src, size_t n);
+void display_string_wrapper(const char* provided_string);
 #endif

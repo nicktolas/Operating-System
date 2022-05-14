@@ -19,10 +19,8 @@ void kmain(void)
     SER_init();
     keyboard_init();
     enable_int_irq();
-
     asm("STI"); // enable interrupts
     
-    SER_write("abcdefg", strlen("abcdefg"));
     while(1)
     {
         asm("hlt");
