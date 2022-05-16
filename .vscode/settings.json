@@ -3,6 +3,7 @@
         "doors_string.h": "c",
         "kernel_funcs.h": "c",
         "kernel_memory.h": "c",
-        "kernel_gdt.h": "c"
+        "kernel_gdt.h": "c",
+        "kernel_serial.h": "c"
     }
 }
