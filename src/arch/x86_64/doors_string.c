@@ -12,7 +12,7 @@ int printk(const char *fmt, ...)
     va_list args_list;
     va_start(args_list, fmt);
     return_val = 0;
-    CLI;
+    // CLI;
     for(i=0; i < strlen(fmt); i++)
     {
         // format specfier - call respective function and double iterate the count
@@ -113,7 +113,7 @@ int printk(const char *fmt, ...)
         }
     }
     va_end(args_list);
-    STI_post_CLI;
+    // STI_post_CLI;
     return return_val;
 }
 // } __attribute__ ((format (printf, 1, 2)));
@@ -475,6 +475,10 @@ size_t strlen(const char *provided_string)
     while(provided_string[length] != '\0')
     {
         length ++;
+    }
+    if(length == 0)
+    {
+        return 0;
     }
     return length+1;
 }

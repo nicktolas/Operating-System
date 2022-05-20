@@ -10,7 +10,6 @@
 
 void kmain(void)
 {
-    multiboot_header_location();
     VGA_background();
     // infinite loop for debugging purposes
     int hold = 1;
@@ -24,6 +23,7 @@ void kmain(void)
     asm("STI"); // enable interrupts
     
     init_multiboot();
+    init_physical_paging();
 
     while(1)
     {

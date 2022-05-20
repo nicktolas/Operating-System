@@ -1,9 +1,12 @@
 global start
+global multiboot_addr
 extern long_mode_start
 
 section .text
 bits 32
 start:
+    ; Save EBX to a label
+    mov [multiboot_addr], ebx
     ; Set stack pointer
     mov esp, stack_top
     ; call functions
@@ -151,6 +154,9 @@ gdt64:
 .pointer:
     dw $ - gdt64 - 1
     dq gdt64
+
+multiboot_addr:
+    dq 0
 
 section .bss
 align 4096

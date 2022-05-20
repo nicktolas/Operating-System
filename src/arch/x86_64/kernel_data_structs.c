@@ -95,6 +95,7 @@ void ll_add_node(struct Linked_List* ll, struct Node* req_node)
     else // list has nodes
     {
         req_node->prev = ll->tail;
+        ll->tail->next = req_node;
         req_node->next = NULL;
         ll->tail = req_node;
     }

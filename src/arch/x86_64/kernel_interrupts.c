@@ -89,6 +89,10 @@ void gen_isr_handler(int irq_num, int error_code)
     CLI;
     switch (irq_num)
     {
+        case 6: // Invalid Opcode
+            printk("\r\nInvalid Opcode: %d\r\n", error_code);
+            asm("hlt;");
+            break;
         case 8: //Double Fault
             printk("\r\nDouble Fault: %d\r\n", error_code);
             asm("hlt");

@@ -4,6 +4,7 @@
         "kernel_funcs.h": "c",
         "kernel_memory.h": "c",
         "kernel_gdt.h": "c",
-        "kernel_serial.h": "c"
+        "kernel_serial.h": "c",
+        "kernel_interrupts.h": "c"
     }
 }

@@ -1,8 +1,9 @@
 #ifndef KERNEL_MULTIBOOT
 #define KERNEL_MULTIBOOT
 #include "kernel.h"
-
-#define MM_NODE_LIST_SIZE 500
+#include "kernel_data_structs.h"
+#define MM_NODE_LIST_SIZE 100
+#define EX_NODE_LIST_SIZE 100
 
 struct Multiboot_Fixed_Header
 {
@@ -47,15 +48,6 @@ struct Multiboot_Boot_Loader_Name_Header
     char* bootloader_string;
 }__attribute__((packed));
 
-// tag type 6
-struct Multiboot_Memory_Map_Header
-{
-    struct Multiboot_Variable_Header super;
-    uint32_t entry_size;
-    uint32_t entry_version;
-    struct Multiboot_Memory_Map_entry* entry_head;
-}__attribute__((packed));
-
 // Entries of type 1 are free to use, else ignore the entry
 struct Multiboot_Memory_Map_Entry
 {
@@ -65,14 +57,13 @@ struct Multiboot_Memory_Map_Entry
     uint32_t reserved;
 }__attribute__((packed));
 
-// tag type 9
-struct Multiboot_ELF_Symbols_Header
+// tag type 6
+struct Multiboot_Memory_Map_Header
 {
     struct Multiboot_Variable_Header super;
-    uint32_t num_entries;
     uint32_t entry_size;
-    uint32_t string_table_index;
-    struct Multiboot_ELF_Section_Entry* entry_head;
+    uint32_t entry_version;
+    struct Multiboot_Memory_Map_Entry entry_head;
 }__attribute__((packed));
 
 struct Multiboot_ELF_Section_Entry
@@ -89,7 +80,26 @@ struct Multiboot_ELF_Section_Entry
     uint64_t IFF_section;
 }__attribute__((packed));
 
-void multiboot_header_location(void);
+// tag type 9
+struct Multiboot_ELF_Symbols_Header
+{
+    struct Multiboot_Variable_Header super;
+    uint32_t num_entries;
+    uint32_t entry_size;
+    uint32_t string_table_index;
+    struct Multiboot_ELF_Section_Entry entry_head;
+}__attribute__((packed));
+
+struct Memory_Map_Node
+{
+    struct Node super;
+    uint64_t start_addr;
+    uint64_t length;
+}__attribute__((packed));
+
 void init_multiboot(void);
 void iterate_variable_headers(uint32_t header_len);
+void parse_memory_map(uint32_t entry_size, uint32_t num_entries, struct Multiboot_Memory_Map_Entry* entries);
+void parse_elf_header(int num_entries, struct Multiboot_ELF_Section_Entry* start_entry);
+void display_memory_map(struct Linked_List* ll);
 #endif
