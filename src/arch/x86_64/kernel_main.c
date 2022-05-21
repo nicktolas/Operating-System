@@ -7,6 +7,7 @@
 #include "kernel_gdt.h"
 #include "kernel_serial.h"
 #include "kernel_multiboot.h"
+#include "kernel_memory.h"
 
 void kmain(void)
 {
@@ -24,7 +25,9 @@ void kmain(void)
     
     init_multiboot();
     init_physical_paging();
+    display_pages();
 
+    
     while(1)
     {
         asm("hlt");
