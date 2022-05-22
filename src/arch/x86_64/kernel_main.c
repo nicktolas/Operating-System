@@ -25,8 +25,9 @@ void kmain(void)
     
     init_multiboot();
     init_physical_paging();
-    display_pages();
+    // display_pages();
 
+    test_paging();
     
     while(1)
     {

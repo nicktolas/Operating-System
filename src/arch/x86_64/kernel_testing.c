@@ -21,3 +21,37 @@ void test_keyboard(void)
     keyboard_loop();
     return;
 }
+
+void test_paging(void)
+{
+    void* test_pages[200] = {0};
+    int i;
+    printk("\r\nTesting Paging\r\n");
+    printk("\r\nInitialize 10 Pages\r\n");
+    for(i=0; i < 10; i++)
+    {
+        test_pages[i] = MMU_pf_alloc();
+    }
+    debug_display_lists();
+    printk("Free the 5th Page: %p\r\n", test_pages[4]);
+    MMU_pf_free(test_pages[4]);
+    debug_display_lists();
+    printk("Allocate 10 more pages - should have 1 left in the avail list\r\n");
+    for(i=10; i < 20; i++)
+    {
+        test_pages[i] = MMU_pf_alloc();
+    }
+    debug_display_lists();
+    // display_page_frame(test_pages[0]);
+    // display_page_frame(test_pages[1]);
+    // display_page_frame(test_pages[2]);
+
+    write_page(test_pages[0], "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 33);
+    write_page(test_pages[1], "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", 33);
+    write_page(test_pages[2], "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", 33);
+
+    display_page_content(test_pages[0]);
+    display_page_content(test_pages[1]);
+    display_page_content(test_pages[2]);
+    return;
+}

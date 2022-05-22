@@ -16,10 +16,10 @@ void init_multiboot()
     struct Multiboot_Fixed_Header* mfh = (struct Multiboot_Fixed_Header*) multiboot_addr;
     printk("Multiboot Header at %p\r\ntotal length: %d\r\n", multiboot_addr, mfh->tag_size);
     iterate_variable_headers(mfh->tag_size);
-    printk("-- Memory Map List -- \r\n");
-    display_memory_map(&Memory_Map_List);
-    printk("-- Exclusions List -- \r\n");
-    display_memory_map(&Exclusions_List);
+    // printk("-- Memory Map List -- \r\n");
+    // display_memory_map(&Memory_Map_List);
+    // printk("-- Exclusions List -- \r\n");
+    // display_memory_map(&Exclusions_List);
     return;
 }
 

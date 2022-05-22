@@ -5,4 +5,6 @@ void test_printk(void);
 
 void test_keyboard(void);
 
+void test_paging(void);
+
 #endif
