@@ -7,7 +7,6 @@
 extern struct Linked_List Memory_Map_List;
 extern struct Linked_List Exclusions_List;
 static struct Linked_List Avail_Pages;
-static struct Linked_List Used_Pages;
 static struct Max_Page_Info max_page;
 
 // Sets n bytes of memory to c starting at location defined by dst
@@ -55,6 +54,7 @@ void init_physical_paging()
     max_page.addr = 0;
     max_page.memory_chunk = (struct Memory_Map_Node*) Memory_Map_List.head;
     create_availible_pages();
+    return;
 }
 
 /* generates additional pages as requested*/
@@ -72,21 +72,24 @@ void create_availible_pages()
     curr_mapped_node = max_page.memory_chunk;
     while(curr_mapped_node != NULL) // iterate through availible memory sections
     {
-        while(byte_offset + PAGE_SIZE < curr_mapped_node->length) // while memory still availible to chunk out
+        
+        while(curr_mapped_node->start_addr + byte_offset + PAGE_SIZE < curr_mapped_node->length) // while memory still availible to chunk out
         {
             if(is_valid_page(curr_mapped_node->start_addr + byte_offset) == 0)
             {
+                
                 init_page_frame((void*)(curr_mapped_node->start_addr + byte_offset));
                 max_page.addr = curr_mapped_node->start_addr + byte_offset;
                 max_page.memory_chunk = curr_mapped_node;
             }
-            if(Avail_Pages.length >= target_length) // only allocates 100 pages to save on some space
+            if((PAGE_INIT_ALL != 1) && (Avail_Pages.length >= target_length)) // only allocates 100 pages to save on some space
             {
                 return;
             }
             byte_offset += PAGE_SIZE;
         }
         byte_offset = 0;
+        
         curr_mapped_node = (struct Memory_Map_Node*) curr_mapped_node->super.next;
     }
     return;
@@ -117,13 +120,11 @@ void * MMU_pf_alloc(void)
         create_availible_pages(); // use base addr to know where we fetched last time (list in order)
         if(Avail_Pages.length <= 0)
         {
-            printk("\r\nERROR: OUT OF MEMORY\r\n");
-            asm("cli; hlt;");
             return NULL;
         }
     }
     curr_page = (struct Physical_Page_Frame*) ll_pop_node(&Avail_Pages, Avail_Pages.head); // pop node
-    ll_add_node(&Used_Pages, &curr_page->super); // add to used
+    // ll_add_node(&Used_Pages, &curr_page->super); // add to used
     curr_page->type = 1; // now used
     return (void *) curr_page;
 }
@@ -131,11 +132,7 @@ void * MMU_pf_alloc(void)
 /* Frees the requested pageframe */
 void MMU_pf_free(void *pf)
 {
-    struct Physical_Page_Frame* curr_page = NULL;
-    curr_page = find_page(&Used_Pages, pf); // pop node
-    ll_pop_node(&Used_Pages, &curr_page->super); // removes from list
-    ll_add_node(&Avail_Pages, &curr_page->super); // add to used
-    curr_page->type = 0; // now avail
+    init_page_frame(pf);
     return;
 }
 
@@ -174,22 +171,14 @@ void init_page_frame(void* pf)
 /* Writes to the requested page */
 void write_page(void* pf, char* string, uint64_t length)
 {
-    struct Physical_Page_Frame* curr_page = NULL;
     int max_len = length;
     // used to verify we write only to existing pages
-    if ((curr_page = find_page(&Used_Pages, pf)) != NULL) // if NULL then raise fault
+    if(max_len >= PAGE_SIZE - sizeof(struct Physical_Page_Frame) - 1)
     {
-        if(max_len >= PAGE_SIZE - sizeof(struct Physical_Page_Frame) - 1)
-        {
-            max_len = PAGE_SIZE;
-            return;
-        }
-        memcpy((void*)((uint64_t)pf + sizeof(struct Physical_Page_Frame)), string, max_len);
+        max_len = PAGE_SIZE;
+        return;
     }
-    else
-    {
-        printk("Error: Wrote nothing to page at %p\r\n", pf);
-    }
+    memcpy((void*)((uint64_t)pf), string, max_len);
     return;
 }
 
@@ -207,6 +196,10 @@ void display_page_content(void* pf)
             if(row < 10)
             {
                 printk("\r\n Row 0%d: ", row);
+                if(row >= 1)
+                {
+                    return;
+                }
             }
             else
             {
@@ -285,7 +278,7 @@ void debug_display_lists(void)
 {
     printk("Availible Pages\r\n");
     display_pages(&Avail_Pages);
-    printk("Used Pages\r\n");
-    display_pages(&Used_Pages);
+    // printk("Used Pages\r\n");
+    // display_pages(&Used_Pages);
     return;
 }

@@ -4,6 +4,8 @@
 #include "kernel_vga.h"
 #include "doors_keyboard.h"
 
+void* test_pages[50000] = {0};
+
 void test_printk(void)
 {
     long long int big_num = 420694206942069420;
@@ -24,34 +26,52 @@ void test_keyboard(void)
 
 void test_paging(void)
 {
-    void* test_pages[200] = {0};
+    
     int i;
+    char buf[50] = {0};
     printk("\r\nTesting Paging\r\n");
     printk("\r\nInitialize 10 Pages\r\n");
-    for(i=0; i < 10; i++)
+    for(i=0; i < 50000; i++)
     {
-        test_pages[i] = MMU_pf_alloc();
+        if((test_pages[i] = MMU_pf_alloc()) == NULL)
+        {
+            break;
+        }
     }
     debug_display_lists();
-    printk("Free the 5th Page: %p\r\n", test_pages[4]);
-    MMU_pf_free(test_pages[4]);
-    debug_display_lists();
-    printk("Allocate 10 more pages - should have 1 left in the avail list\r\n");
-    for(i=10; i < 20; i++)
-    {
-        test_pages[i] = MMU_pf_alloc();
-    }
-    debug_display_lists();
+    // printk("Free the 5th Page: %p\r\n", test_pages[4]);
+    // MMU_pf_free(test_pages[4]);
+    // debug_display_lists();
+    // printk("Allocate 10 more pages - should have 1 left in the avail list\r\n");
+    // for(i=10; i < sizeof(test_pages); i++)
+    // {
+    //     test_pages[i] = MMU_pf_alloc();
+    // }
+    // debug_display_lists();
     // display_page_frame(test_pages[0]);
     // display_page_frame(test_pages[1]);
     // display_page_frame(test_pages[2]);
 
-    write_page(test_pages[0], "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 33);
-    write_page(test_pages[1], "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", 33);
-    write_page(test_pages[2], "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", 33);
+    for(i=0; i < 50000; i++)
+    {
+        buf[0] = (uint8_t) ((uint64_t)test_pages[i] & 0xFF);
+        buf[1] = (uint8_t) (((uint64_t)test_pages[i] & 0xFFFF) >> 8);
+        buf[3] = (uint8_t) (((uint64_t)test_pages[i] & 0xFFFFFF) >> 16);
+        buf[4] = (uint8_t) (((uint64_t)test_pages[i]) >> 24);
+        buf[5] = '\0';
+        write_page(test_pages[i], buf, 5);
+    }
+    for(i=0; i < 50000; i = i + 2500)
+    {
+        display_page_content(test_pages[i]);
+    }
+    printk("wrote to all\r\n");
+    // write_page(test_pages[0], "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 33);
+    // write_page(test_pages[1], "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", 33);
+    // write_page(test_pages[2], "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", 33);
 
-    display_page_content(test_pages[0]);
-    display_page_content(test_pages[1]);
-    display_page_content(test_pages[2]);
+    // display_page_content(test_pages[0]);
+    // display_page_content(test_pages[1]);
+    // display_page_content(test_pages[2]);
     return;
 }

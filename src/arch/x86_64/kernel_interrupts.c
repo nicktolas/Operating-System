@@ -105,7 +105,7 @@ void gen_isr_handler(int irq_num, int error_code)
 
         case 14: //page fault
             printk("\r\nPage Fault: %d\r\n", error_code);
-            // asm("hlt;");
+            asm("hlt;");
             break;
         
         case 32: // Programmable Timer Interrupt

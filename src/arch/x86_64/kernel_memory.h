@@ -4,6 +4,7 @@
 #include "kernel_data_structs.h"
 #define PAGE_LIMIT_SIZE 10000
 #define PAGE_INIT_SIZE 10
+#define PAGE_INIT_ALL 1
 #define PAGE_SIZE 4096
 
 struct Max_Page_Info
