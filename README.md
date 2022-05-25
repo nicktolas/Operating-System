@@ -1,4 +1,12 @@
 # Operating-System
-My custom operating system for implementation of operating systems at calpoly
+My custom operating system for implementation of operating systems at calpoly (CPE 454)
 
-So far can boot in 64-bit long mode and exists.
+Doors OS is a operating system built for Intel x86 64-bit.
+
+Doors OS uses GRUB and is Multiboot compliant. 
+The operating system currently supports:
+  Keyboard
+  VGA
+  Serial
+  Interrupts
+  
