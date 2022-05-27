@@ -8,12 +8,13 @@ extern struct Linked_List Memory_Map_List;
 extern struct Linked_List Exclusions_List;
 static struct Linked_List Avail_Pages;
 static struct Max_Page_Info max_page;
+static struct Page_Table_Entry** PT4;
 
 // Sets n bytes of memory to c starting at location defined by dst
 void * memset(void *dst, int c, size_t n)
 {
     int i;
-    char* curr_pos = (char*)dst;
+    char* curr_pos = (char*)sdst;
     for (i=0;i<n;i++)
     {
         curr_pos[i] = c;
@@ -47,6 +48,8 @@ void outb(uint16_t port, uint8_t val)
     asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
     return;
 }
+
+/* --------------- Physical paging ---------------- */
 
 /* Initializes PAGE_INIT_SIZE Pages into a Linked List of size PAGE_LIMIT_SIZE*/
 void init_physical_paging()
@@ -196,10 +199,6 @@ void display_page_content(void* pf)
             if(row < 10)
             {
                 printk("\r\n Row 0%d: ", row);
-                if(row >= 1)
-                {
-                    return;
-                }
             }
             else
             {
@@ -280,5 +279,19 @@ void debug_display_lists(void)
     display_pages(&Avail_Pages);
     // printk("Used Pages\r\n");
     // display_pages(&Used_Pages);
+    return;
+}
+
+/* ---------------- virutal memory  -------------------- */
+
+/* Initalizes the virtual page tables needed for paging.
+   Sets up the identity map for our page table as the only init entry  */
+void init_page_tables()
+{
+    struct Page_Table_Entry* entry;
+    // gets us a page for level for page table
+    PT4 = MMU_pf_alloc();
+    memset((void*) PT4, 0, PAGE_SIZE); // sets page to zero to ensure to transfered garbage
+    entry = (struct Page_Table_Entry*) PT4[1]; // PT 0 is NULL Page
     return;
 }

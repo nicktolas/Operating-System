@@ -6,6 +6,14 @@
 #define PAGE_INIT_SIZE 10
 #define PAGE_INIT_ALL 1
 #define PAGE_SIZE 4096
+#define MMU_ID_MAP 0x0
+#define MMU_KSTACK_MAP 0x10000000000
+#define MMU_KGROWTH_MAP 0x20000000000
+#define MMU_KHEAP_MAP 0xF0000000000
+#define MMU_USER_MAP 0x100000000000
+#define MMU_KSTACK_SIZE 2000
+#define MMU_USTACK_SIZE 4000
+#define MMU_PAGE_TABLE_SIZE 512
 
 struct Max_Page_Info
 {
@@ -21,6 +29,25 @@ struct Physical_Page_Frame
     uint16_t reserved;
 }__attribute__((packed));
 
+struct Page_Table_Entry
+{
+    uint8_t present:1;
+    uint8_t read_write:1;
+    uint8_t perm:1;
+    uint8_t pwt:1;
+    uint8_t pct:1;
+    uint8_t access:1;
+    uint8_t ign_1:1;
+    uint8_t zero:1; // end 8 byte bountry
+    uint8_t ign_2:1;
+    uint8_t avail:3;
+    uint8_t pt_base_addr_l4: 4;
+    uint16_t pt_base_addr_31_16;
+    uint32_t pt_base_addr_51_32:20;
+    uint32_t avail_top:11; 
+    uint32_t NX:1;
+}__attribute__((packed));
+
 // Memory Manipulation
 void * memset(void *dst, int c, size_t n);
 void *memcpy(void *restrict dest, const void *restrict src, size_t n);
@@ -28,7 +55,7 @@ void *memcpy(void *restrict dest, const void *restrict src, size_t n);
 uint8_t inb(uint16_t port);
 void outb(uint16_t port, uint8_t val);
 
-// paging
+// physical paging
 void * MMU_pf_alloc(void);
 void MMU_pf_free(void *pf);
 void init_physical_paging(void);
@@ -41,6 +68,9 @@ void write_page(void* pf, char* string, uint64_t length);
 void print_u8_no_prefix(uint8_t num);
 
 void init_page_frame(void* pf);
+
+// virtual paging
+void init_page_tables(void);
 
 //debug functions
 void debug_display_lists(void);
