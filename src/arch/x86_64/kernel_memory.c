@@ -309,7 +309,7 @@ void setup_P4_entry(uint64_t vaddr)
     {
         entry = (struct Page_Table_Entry*) PT4[i];
         // setup p3 entry
-        PT3 = setup_P3_entry(vaddr);
+        PT3 = setup_P3_entry(vaddr + i*PT4_ADDR_OFFSET);
         // setup the p3 addr -- returned from p3 entry function
         entry->pt_base_addr_l4 = ((uint64_t)PT3) & 0xF;
         entry->pt_base_addr_20_5 = (((uint64_t)PT3) >> 4) & 0xFFFF; // 16 bit value
@@ -331,7 +331,7 @@ void* setup_P3_entry(uint64_t vaddr)
     {
         entry = (struct Page_Table_Entry*) PT3[i];
         // Instantiate all of PT2 below
-        PT2 = setup_P2_entry(vaddr);
+        PT2 = setup_P2_entry(vaddr + i*PT3_ADDR_OFFSET);
         // setup the p2 addr -- returned from p2 entry function
         entry->pt_base_addr_l4 = ((uint64_t)PT2) & 0xF;
         entry->pt_base_addr_20_5 = (((uint64_t)PT2) >> 4) & 0xFFFF; // 16 bit value
@@ -353,7 +353,7 @@ void* setup_P2_entry(uint64_t vaddr)
     {
         entry = (struct Page_Table_Entry*) PT2[i];
         // Instantiate all of PT1 below
-        PT1 = setup_P1_entry(vaddr);
+        PT1 = setup_P1_entry(vaddr + i*PT2_ADDR_OFFSET);
         // setup the p2 addr -- returned from p2 entry function
         entry->pt_base_addr_l4 = ((uint64_t)PT1) & 0xF;
         entry->pt_base_addr_20_5 = (((uint64_t)PT1) >> 4) & 0xFFFF; // 16 bit value
@@ -372,7 +372,7 @@ void* setup_P1_entry(uint64_t vaddr)
     // Identiy map the bottom pages
     for (i=0; i<512; i++)
     {
-        PT1[i] = (struct Page_Table_Entry*) (((vaddr + i*4096) & 0xfffff000) | 1); // mask parts that dont matter and set to present
+        PT1[i] = (struct Page_Table_Entry*) (((vaddr + i*PT1_ADDR_OFFSET) & 0xfffff000) | 1); // mask parts that dont matter and set to present
     }
     if(vaddr == 0) // ensure page fault on NULL address
     {
