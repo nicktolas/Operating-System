@@ -7,4 +7,6 @@ void test_keyboard(void);
 
 void test_paging(void);
 
+void test_page_table(void);
+
 #endif

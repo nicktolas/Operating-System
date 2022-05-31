@@ -84,4 +84,6 @@ void* setup_P1_entry(uint64_t vaddr);
 void debug_display_lists(void);
 void display_page_frame(void* pf);
 
+void dump_page_addresses(void);
+
 #endif

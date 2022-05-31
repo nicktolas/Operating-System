@@ -8,7 +8,8 @@ extern struct Linked_List Memory_Map_List;
 extern struct Linked_List Exclusions_List;
 static struct Linked_List Avail_Pages;
 static struct Max_Page_Info max_page;
-static struct Page_Table_Entry** PT4;
+static struct Page_Table_Entry* PT4;
+uint64_t old_cr3;
 
 // Sets n bytes of memory to c starting at location defined by dst
 void * memset(void *dst, int c, size_t n)
@@ -191,29 +192,29 @@ void display_page_content(void* pf)
     uint64_t offset = 0;
     uint8_t val = 0;
     int row = 0;
-    printk("\r\n-- Page at %p --\r\n", pf);
+    // printk("\r\n-- Page at %p --\r\n", pf);
     for(offset = 0; offset<PAGE_SIZE; offset = offset + 1)
     {
         if(offset % 64 == 0)
         {
             if(row < 10)
             {
-                printk("\r\n Row 0%d: ", row);
+                // printk("\r\n Row 0%d: ", row);
             }
             else
             {
-                printk("\r\n Row %d: ", row);
+                // printk("\r\n Row %d: ", row);
             }
             row++;
         }
         if(offset % 4 == 0)
         {
-            printk(" ");
+            // printk(" ");
         }
         memcpy(&val, (void*)((uint64_t)pf + offset), 1);
         print_u8_no_prefix(val);
     }
-    printk("\r\n");
+    // printk("\r\n");
     return;
 }
 
@@ -289,6 +290,11 @@ void debug_display_lists(void)
 void init_page_tables()
 {
     setup_P4_entry(0);
+    // read CR3
+    // asm("mov %%rax, %%cr3; mov %0, %%rax"
+    // :"=r"(old_cr3)
+    // :
+    // :"rax");
     // load the table into CR3 register
     asm("mov %%cr3, %0;"
     :
@@ -307,7 +313,7 @@ void setup_P4_entry(uint64_t vaddr)
     memset((void*) PT4, 0, PAGE_SIZE);
     for(i=0; i<2; i++) // only 2 entries needed for ID map
     {
-        entry = (struct Page_Table_Entry*) PT4[i];
+        entry = (struct Page_Table_Entry*) &PT4[i];
         // setup p3 entry
         PT3 = setup_P3_entry(vaddr + i*PT4_ADDR_OFFSET);
         // setup the p3 addr -- returned from p3 entry function
@@ -323,13 +329,13 @@ void setup_P4_entry(uint64_t vaddr)
 void* setup_P3_entry(uint64_t vaddr)
 {
     struct Page_Table_Entry* entry;
-    struct Page_Table_Entry** PT3;
+    struct Page_Table_Entry* PT3;
     int i;
     void* PT2;
     PT3 = MMU_pf_alloc();
     for (i=0; i<512; i++)
     {
-        entry = (struct Page_Table_Entry*) PT3[i];
+        entry = (struct Page_Table_Entry*) &PT3[i];
         // Instantiate all of PT2 below
         PT2 = setup_P2_entry(vaddr + i*PT3_ADDR_OFFSET);
         // setup the p2 addr -- returned from p2 entry function
@@ -345,13 +351,13 @@ void* setup_P3_entry(uint64_t vaddr)
 void* setup_P2_entry(uint64_t vaddr)
 {
     struct Page_Table_Entry* entry;
-    struct Page_Table_Entry** PT2;
+    struct Page_Table_Entry* PT2;
     int i;
     void* PT1;
     PT2 = MMU_pf_alloc();
     for (i=0; i<512; i++)
     {
-        entry = (struct Page_Table_Entry*) PT2[i];
+        entry = (struct Page_Table_Entry*) &PT2[i];
         // Instantiate all of PT1 below
         PT1 = setup_P1_entry(vaddr + i*PT2_ADDR_OFFSET);
         // setup the p2 addr -- returned from p2 entry function
@@ -383,6 +389,13 @@ void* setup_P1_entry(uint64_t vaddr)
 
 
 // debug functions
+
+void dump_page_addresses()
+{
+    printk("Old CR3 address: %lx\r\nNew CR3 address: %p\r\n", old_cr3, (void*)PT4);
+    return;
+}
+
 // void search_table(void* vaddr)
 // {
 

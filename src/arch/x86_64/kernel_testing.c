@@ -75,3 +75,9 @@ void test_paging(void)
     // display_page_content(test_pages[2]);
     return;
 }
+
+void test_page_table()
+{
+    dump_page_addresses();
+    return;
+}
