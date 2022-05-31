@@ -387,7 +387,17 @@ void* setup_P1_entry(uint64_t vaddr)
     return PT1;
 }
 
+/* Intitalizes the kernel growing data structures*/
+void init_kernel_memory(void)
+{
+    return;
+}
 
+/* Allocates a new page via the virtual address*/
+void allocate_new_page(uint64_t vaddr)
+{
+    return;
+}
 // debug functions
 
 void dump_page_addresses()
@@ -395,8 +405,3 @@ void dump_page_addresses()
     printk("Old CR3 address: %lx\r\nNew CR3 address: %p\r\n", old_cr3, (void*)PT4);
     return;
 }
-
-// void search_table(void* vaddr)
-// {
-
-// }
