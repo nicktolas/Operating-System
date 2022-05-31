@@ -32,18 +32,18 @@ struct Physical_Page_Frame
 struct Page_Table_Entry
 {
     uint8_t present:1;
-    uint8_t read_write:1;
+    uint8_t writable:1;
     uint8_t perm:1;
-    uint8_t pwt:1;
-    uint8_t pct:1;
+    uint8_t write_cache:1;
+    uint8_t cache_disable:1;
     uint8_t access:1;
-    uint8_t ign_1:1;
-    uint8_t zero:1; // end 8 byte bountry
-    uint8_t ign_2:1;
+    uint8_t dirty:1;
+    uint8_t page_size:1; // end 8 byte bountry
+    uint8_t global:1;
     uint8_t avail:3;
     uint8_t pt_base_addr_l4: 4;
-    uint16_t pt_base_addr_31_16;
-    uint32_t pt_base_addr_51_32:20;
+    uint16_t pt_base_addr_20_5;
+    uint32_t pt_base_addr_36_21:20;
     uint32_t avail_top:11; 
     uint32_t NX:1;
 }__attribute__((packed));
@@ -71,6 +71,10 @@ void init_page_frame(void* pf);
 
 // virtual paging
 void init_page_tables(void);
+void setup_P4_entry(uint64_t vaddr);
+void* setup_P3_entry(uint64_t vaddr);
+void* setup_P2_entry(uint64_t vaddr);
+void* setup_P1_entry(uint64_t vaddr);
 
 //debug functions
 void debug_display_lists(void);

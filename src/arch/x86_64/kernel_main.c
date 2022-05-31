@@ -17,6 +17,7 @@ void kmain(void)
     while(hold){;}
     VGA_clear();
     gdt_assign_segments();
+    init_page_tables();
     interrupts_init();
     SER_init();
     keyboard_init();

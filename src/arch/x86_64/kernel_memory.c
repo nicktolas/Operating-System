@@ -14,7 +14,7 @@ static struct Page_Table_Entry** PT4;
 void * memset(void *dst, int c, size_t n)
 {
     int i;
-    char* curr_pos = (char*)sdst;
+    char* curr_pos = (char*)dst;
     for (i=0;i<n;i++)
     {
         curr_pos[i] = c;
@@ -288,10 +288,102 @@ void debug_display_lists(void)
    Sets up the identity map for our page table as the only init entry  */
 void init_page_tables()
 {
-    struct Page_Table_Entry* entry;
-    // gets us a page for level for page table
-    PT4 = MMU_pf_alloc();
-    memset((void*) PT4, 0, PAGE_SIZE); // sets page to zero to ensure to transfered garbage
-    entry = (struct Page_Table_Entry*) PT4[1]; // PT 0 is NULL Page
+    setup_P4_entry(0);
+    // load the table into CR3 register
+    asm("mov %%cr3, %0;"
+    :
+    : "r"(PT4)
+    );
     return;
 }
+
+/* Sets up the identity map from PT4, only 2 entries needed to house all of memory space for ID map */
+void setup_P4_entry(uint64_t vaddr)
+{
+    struct Page_Table_Entry* entry;
+    int i;
+    void* PT3;
+    PT4 = MMU_pf_alloc();
+    memset((void*) PT4, 0, PAGE_SIZE);
+    for(i=0; i<2; i++) // only 2 entries needed for ID map
+    {
+        entry = (struct Page_Table_Entry*) PT4[i];
+        // setup p3 entry
+        PT3 = setup_P3_entry(vaddr);
+        // setup the p3 addr -- returned from p3 entry function
+        entry->pt_base_addr_l4 = ((uint64_t)PT3) & 0xF;
+        entry->pt_base_addr_20_5 = (((uint64_t)PT3) >> 4) & 0xFFFF; // 16 bit value
+        entry->pt_base_addr_36_21 = (((uint64_t)PT3) >> 20) & 0xFFFF; // 16 bit value
+        entry->present = 1;
+    }
+    return;
+}
+
+/* Sets up the identity map from PT3 */
+void* setup_P3_entry(uint64_t vaddr)
+{
+    struct Page_Table_Entry* entry;
+    struct Page_Table_Entry** PT3;
+    int i;
+    void* PT2;
+    PT3 = MMU_pf_alloc();
+    for (i=0; i<512; i++)
+    {
+        entry = (struct Page_Table_Entry*) PT3[i];
+        // Instantiate all of PT2 below
+        PT2 = setup_P2_entry(vaddr);
+        // setup the p2 addr -- returned from p2 entry function
+        entry->pt_base_addr_l4 = ((uint64_t)PT2) & 0xF;
+        entry->pt_base_addr_20_5 = (((uint64_t)PT2) >> 4) & 0xFFFF; // 16 bit value
+        entry->pt_base_addr_36_21 = (((uint64_t)PT2) >> 20) & 0xFFFF; // 16 bit value
+        entry->present = 1;
+    }
+    return (void*) PT3;
+}
+
+/* Sets up the identity map from PT2 */
+void* setup_P2_entry(uint64_t vaddr)
+{
+    struct Page_Table_Entry* entry;
+    struct Page_Table_Entry** PT2;
+    int i;
+    void* PT1;
+    PT2 = MMU_pf_alloc();
+    for (i=0; i<512; i++)
+    {
+        entry = (struct Page_Table_Entry*) PT2[i];
+        // Instantiate all of PT1 below
+        PT1 = setup_P1_entry(vaddr);
+        // setup the p2 addr -- returned from p2 entry function
+        entry->pt_base_addr_l4 = ((uint64_t)PT1) & 0xF;
+        entry->pt_base_addr_20_5 = (((uint64_t)PT1) >> 4) & 0xFFFF; // 16 bit value
+        entry->pt_base_addr_36_21 = (((uint64_t)PT1) >> 20) & 0xFFFF; // 16 bit value
+        entry->present = 1;
+    }
+    return PT2;
+}
+
+/* Sets up the identity map from PT1 */
+void* setup_P1_entry(uint64_t vaddr)
+{
+    struct Page_Table_Entry** PT1;
+    int i;
+    PT1 = MMU_pf_alloc();
+    // Identiy map the bottom pages
+    for (i=0; i<512; i++)
+    {
+        PT1[i] = (struct Page_Table_Entry*) (((vaddr + i*4096) & 0xfffff000) | 1); // mask parts that dont matter and set to present
+    }
+    if(vaddr == 0) // ensure page fault on NULL address
+    {
+        PT1[0] = 0;
+    }
+    return PT1;
+}
+
+
+// debug functions
+// void search_table(void* vaddr)
+// {
+
+// }
