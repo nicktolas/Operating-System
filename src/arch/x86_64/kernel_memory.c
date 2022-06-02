@@ -10,6 +10,7 @@ static struct Linked_List Avail_Pages;
 static struct Max_Page_Info max_page;
 static struct Page_Table_Entry* PT4;
 uint64_t old_cr3;
+uint64_t high_mem_addr;
 
 // Sets n bytes of memory to c starting at location defined by dst
 void * memset(void *dst, int c, size_t n)
@@ -98,6 +99,17 @@ void create_availible_pages()
     }
     return;
 }
+
+/* Gets the largest memory address on the system*/
+uint64_t get_high_mem_addr()
+{
+    uint64_t max_val = 0;
+    struct Memory_Map_Node* curr;
+    curr = (struct Memory_Map_Node*) Memory_Map_List.tail;
+    max_val = curr->start_addr + curr->length;
+    return max_val;
+}
+
 /* Iterates through the exclusions list to determine if the requested base_address can be allocated.
    Returns 0 if page is able to be used and 1 otherwise. */
 int is_valid_page(uint64_t low_limit)
@@ -291,12 +303,12 @@ void init_page_tables()
 {
     setup_P4_entry(0);
     // read CR3
-    // asm("mov %%rax, %%cr3; mov %0, %%rax"
-    // :"=r"(old_cr3)
-    // :
-    // :"rax");
+    asm volatile ("mov %%cr3, %0"
+    :"=r"(old_cr3)
+    :
+    :);
     // load the table into CR3 register
-    asm("mov %%cr3, %0;"
+    asm volatile ("movq %0, %%cr3;"
     :
     : "r"(PT4)
     );
@@ -310,17 +322,23 @@ void setup_P4_entry(uint64_t vaddr)
     int i;
     void* PT3;
     PT4 = MMU_pf_alloc();
+    high_mem_addr = get_high_mem_addr();
     memset((void*) PT4, 0, PAGE_SIZE);
-    for(i=0; i<2; i++) // only 2 entries needed for ID map
+    for(i=0; i<512; i++) // only 2 entries needed for ID map
     {
         entry = (struct Page_Table_Entry*) PT4 + i;
         // setup p3 entry
-        PT3 = setup_P3_entry(vaddr + i*PT4_ADDR_OFFSET);
+        PT3 = (void*)((uint64_t) setup_P3_entry(vaddr + i*PT4_ADDR_OFFSET) >> 12);
         // setup the p3 addr -- returned from p3 entry function
         entry->pt_base_addr_l4 = ((uint64_t)PT3) & 0xF;
         entry->pt_base_addr_20_5 = (((uint64_t)PT3) >> 4) & 0xFFFF; // 16 bit value
         entry->pt_base_addr_36_21 = (((uint64_t)PT3) >> 20) & 0xFFFF; // 16 bit value
         entry->present = 1;
+        entry->writable = 1;
+        if((vaddr + i*PT4_ADDR_OFFSET) >= high_mem_addr)
+        {
+            break;
+        }
     }
     return;
 }
@@ -337,12 +355,17 @@ void* setup_P3_entry(uint64_t vaddr)
     {
         entry = (struct Page_Table_Entry*) PT3 + i;
         // Instantiate all of PT2 below
-        PT2 = setup_P2_entry(vaddr + i*PT3_ADDR_OFFSET);
+        PT2 = (void*)((uint64_t)setup_P2_entry(vaddr + i*PT3_ADDR_OFFSET) >> 12);
         // setup the p2 addr -- returned from p2 entry function
         entry->pt_base_addr_l4 = ((uint64_t)PT2) & 0xF;
         entry->pt_base_addr_20_5 = (((uint64_t)PT2) >> 4) & 0xFFFF; // 16 bit value
         entry->pt_base_addr_36_21 = (((uint64_t)PT2) >> 20) & 0xFFFF; // 16 bit value
         entry->present = 1;
+        entry->writable = 1;
+        if((vaddr + i*PT3_ADDR_OFFSET) >= high_mem_addr)
+        {
+            break;
+        }
     }
     return (void*) PT3;
 }
@@ -359,12 +382,17 @@ void* setup_P2_entry(uint64_t vaddr)
     {
         entry = (struct Page_Table_Entry*) PT2 + i;
         // Instantiate all of PT1 below
-        PT1 = setup_P1_entry(vaddr + i*PT2_ADDR_OFFSET);
+        PT1 = (void*)((uint64_t)setup_P1_entry(vaddr + i*PT2_ADDR_OFFSET) >> 12);
         // setup the p2 addr -- returned from p2 entry function
         entry->pt_base_addr_l4 = ((uint64_t)PT1) & 0xF;
         entry->pt_base_addr_20_5 = (((uint64_t)PT1) >> 4) & 0xFFFF; // 16 bit value
         entry->pt_base_addr_36_21 = (((uint64_t)PT1) >> 20) & 0xFFFF; // 16 bit value
         entry->present = 1;
+        entry->writable = 1;
+        if((vaddr + i*PT2_ADDR_OFFSET) >= high_mem_addr)
+        {
+            break;
+        }
     }
     return PT2;
 }
@@ -372,17 +400,27 @@ void* setup_P2_entry(uint64_t vaddr)
 /* Sets up the identity map from PT1 */
 void* setup_P1_entry(uint64_t vaddr)
 {
-    struct Page_Table_Entry** PT1;
+    struct Page_Table_Entry* PT1;
+    struct Page_Table_Entry* entry;
     int i;
     PT1 = MMU_pf_alloc();
     // Identiy map the bottom pages
     for (i=0; i<512; i++)
     {
-        PT1[i] = (struct Page_Table_Entry*) (((vaddr + i*PT1_ADDR_OFFSET) & 0xfffff000) | 1); // mask parts that dont matter and set to present
+        entry = PT1 + i;
+        entry->present = 1;
+        entry->writable = 1;
+        entry->pt_base_addr_l4 = ((vaddr + i*PT1_ADDR_OFFSET) >> 12) & 0xF;
+        entry->pt_base_addr_20_5 = (((vaddr + i*PT1_ADDR_OFFSET) >> 12) >> 4) & 0xFFFF; // 16 bit value
+        entry->pt_base_addr_36_21 = (((vaddr + i*PT1_ADDR_OFFSET)>> 12) >> 20) & 0xFFFF; // 16 bit value
+        if((vaddr + i*PT1_ADDR_OFFSET) >= high_mem_addr)
+        {
+            break;
+        }
     }
     if(vaddr == 0) // ensure page fault on NULL address
     {
-        PT1[0] = 0;
+        PT1->present = 0;
     }
     return PT1;
 }
@@ -401,97 +439,130 @@ void allocate_vaddr_page_four(uint64_t vaddr)
     int index;
     index = (vaddr >> 39) & 0x1FF; // 9 bit mask
     entry = (struct Page_Table_Entry*) PT4 + index;
+    printk("Before\r\n");
+    debug_filled_entries((struct Page_Table_Entry*) PT4);
     if(entry->present == 0) // does not have any pages below it, setup p4 entry and p3 entry
     {
         PT3 = allocate_vaddr_page_three(vaddr, NULL);
-        entry->pt_base_addr_l4 = ((uint64_t)PT3) & 0xF;
-        entry->pt_base_addr_20_5 = (((uint64_t)PT3) >> 4) & 0xFFFF; // 16 bit value
-        entry->pt_base_addr_36_21 = (((uint64_t)PT3) >> 20) & 0xFFFF; // 16 bit value
+        entry->pt_base_addr_l4 = ((uint64_t)PT3 >> 12) & 0xF;
+        entry->pt_base_addr_20_5 = (((uint64_t)PT3 >> 12) >> 4) & 0xFFFF; // 16 bit value
+        entry->pt_base_addr_36_21 = (((uint64_t)PT3 >> 12) >> 20) & 0xFFFF; // 16 bit value
         entry->present = 1;
+        entry->writable = 1;
     }
     else
     {
         PT3 = (void*) ((uint64_t)(entry->pt_base_addr_36_21 << 20) | (entry->pt_base_addr_20_5 << 4) | (entry->pt_base_addr_l4));
         allocate_vaddr_page_three(vaddr, PT3);
     }
+    printk("After\r\n");
+    debug_filled_entries((struct Page_Table_Entry*) PT4);
     return;
 }
 
-void* allocate_vaddr_page_three(uint64_t vaddr, void* PT3)
+void* allocate_vaddr_page_three(uint64_t vaddr, void* old_PT3)
 {
     struct Page_Table_Entry* entry;
     void* PT2 = 0;
+    void* PT3;
     int index;
     index = (vaddr >> 30) & 0x1FF; // 9 bit mask
-    if(PT3 == NULL) // page table doesnt exist, setup the table
+    if(old_PT3 == NULL) // page table doesnt exist, setup the table
     {
         PT3 = MMU_pf_alloc();
         memset(PT3, 0, PAGE_SIZE);
     }
+    else
+    {
+        PT3 = old_PT3;
+    }
+    printk("Before\r\n");
+    debug_filled_entries((struct Page_Table_Entry*) PT3);
     entry = (struct Page_Table_Entry*) PT3 + index;
     if(entry->present == 0) // does not have present entry
     {
         PT2 = allocate_vaddr_page_two(vaddr, NULL); // below page does not have entry
-        entry->pt_base_addr_l4 = ((uint64_t)PT2) & 0xF;
-        entry->pt_base_addr_20_5 = (((uint64_t)PT2) >> 4) & 0xFFFF; // 16 bit value
-        entry->pt_base_addr_36_21 = (((uint64_t)PT2) >> 20) & 0xFFFF; // 16 bit value
+        entry->pt_base_addr_l4 = ((uint64_t)PT2 >> 12) & 0xF;
+        entry->pt_base_addr_20_5 = (((uint64_t)PT2 >> 12) >> 4) & 0xFFFF; // 16 bit value
+        entry->pt_base_addr_36_21 = (((uint64_t)PT2 >> 12) >> 20) & 0xFFFF; // 16 bit value
         entry->present = 1;
+        entry->writable = 1;
     }
     else 
     {
         PT2 = (void*) ((uint64_t)(entry->pt_base_addr_36_21 << 20) | (entry->pt_base_addr_20_5 << 4) | (entry->pt_base_addr_l4));
         allocate_vaddr_page_two(vaddr, PT2);
     }
+    printk("After\r\n");
+    debug_filled_entries((struct Page_Table_Entry*) PT3);
     return PT3;
 }
 
-void* allocate_vaddr_page_two(uint64_t vaddr, void* PT2)
+void* allocate_vaddr_page_two(uint64_t vaddr, void* old_PT2)
 {
     struct Page_Table_Entry* entry;
     void* PT1 = 0;
+    void* PT2; 
     int index;
     index = (vaddr >> 21) & 0x1FF; // 9 bit mask
-    if(PT2 == NULL) // page table doesnt exist, setup the table
+    if(old_PT2 == NULL) // page table doesnt exist, setup the table
     {
         PT2 = MMU_pf_alloc();
         memset(PT2, 0, PAGE_SIZE);
     }
+    else
+    {
+        PT2 = old_PT2;
+    }
+    printk("Before\r\n");
+    debug_filled_entries((struct Page_Table_Entry*) PT2);
     entry = (struct Page_Table_Entry*) PT2 + index;
     if(entry->present == 0) // does not have present entry
     {
-        PT1 = allocate_vaddr_page_two(vaddr, NULL); // below page does not have entry
-        entry->pt_base_addr_l4 = ((uint64_t)PT1) & 0xF;
-        entry->pt_base_addr_20_5 = (((uint64_t)PT1) >> 4) & 0xFFFF; // 16 bit value
-        entry->pt_base_addr_36_21 = (((uint64_t)PT1) >> 20) & 0xFFFF; // 16 bit value
+        PT1 = allocate_vaddr_page_one(vaddr, NULL); // below page does not have entry
+        entry->pt_base_addr_l4 = ((uint64_t)PT1 >> 12) & 0xF;
+        entry->pt_base_addr_20_5 = (((uint64_t)PT1 >> 12) >> 4) & 0xFFFF; // 16 bit value
+        entry->pt_base_addr_36_21 = (((uint64_t)PT1 >> 12) >> 20) & 0xFFFF; // 16 bit value
         entry->present = 1;
+        entry->writable = 1;
     }
     else
     {
         PT1 = (void*) ((uint64_t)(entry->pt_base_addr_36_21 << 20) | (entry->pt_base_addr_20_5 << 4) | (entry->pt_base_addr_l4));
         allocate_vaddr_page_two(vaddr, PT2);
     }
+    printk("After\r\n");
+    debug_filled_entries((struct Page_Table_Entry*) PT2);
     return PT2;
 }
 
-void* allocate_vaddr_page_one(uint64_t vaddr, void* PT1)
+void* allocate_vaddr_page_one(uint64_t vaddr, void* old_PT1)
 {
     struct Page_Table_Entry* entry;
     void* page = 0;
+    void* PT1;
     int index;
     index = (vaddr >> 12) & 0x1FF; // 9 bit mask
-    if(PT1 == NULL) // page table doesnt exist, setup the table
+    if(old_PT1 == NULL) // page table doesnt exist, setup the table
     {
         PT1 = MMU_pf_alloc();
         memset(PT1, 0, PAGE_SIZE);
     }
+    else
+    {
+        PT1 = old_PT1;
+    }
     entry = (struct Page_Table_Entry*) PT1 + index;
+    printk("Before\r\n");
+    debug_filled_entries((struct Page_Table_Entry*) PT1);
     if(entry->present == 0) // does not have present entry
     {
         page = MMU_pf_alloc(); 
-        entry->pt_base_addr_l4 = ((uint64_t)page) & 0xF;
-        entry->pt_base_addr_20_5 = (((uint64_t)page) >> 4) & 0xFFFF; // 16 bit value
-        entry->pt_base_addr_36_21 = (((uint64_t)page) >> 20) & 0xFFFF; // 16 bit value
+        entry->pt_base_addr_l4 = ((uint64_t)page >> 12) & 0xF;
+        entry->pt_base_addr_20_5 = (((uint64_t)page >> 12) >> 4) & 0xFFFF; // 16 bit value
+        entry->pt_base_addr_36_21 = (((uint64_t)page >> 12) >> 20) & 0xFFFF; // 16 bit value
         entry->present = 1;
+        entry->writable = 1;
     }
     else
     {
@@ -499,6 +570,8 @@ void* allocate_vaddr_page_one(uint64_t vaddr, void* PT1)
         asm("hlt;");
         return NULL; // this shouldnt happen, ever
     }
+    printk("After\r\n");
+    debug_filled_entries((struct Page_Table_Entry*) PT1);
     return PT1;
 }
 
@@ -512,18 +585,10 @@ void dump_page_addresses()
 
 void debug_allocator(void)
 {
-    int addr = 0;
-    uint64_t vaddr = 0xDEADBEEF123;
-    printk("Testing the following Address 0xDEADBEEF123\r\n");
-    addr = (vaddr >> 39) & 0x1FF;
-    printk("PT4 Offset: %d ", addr);
-    addr = (vaddr >> 30) & 0x1FF;
-    printk("PT3 Offset: %d ", addr);
-    addr = (vaddr >> 21) & 0x1FF;
-    printk("PT2 Offset: %d ", addr);
-    addr = (vaddr >> 12) & 0x1FF;
-    printk("PT1 Offset: %d\r\n", addr);
-    debug_filled_entries((struct Page_Table_Entry*) PT4);
+    uint64_t vaddr = 0x1000003;
+    printk("Testing the following Address 0x1000003\r\n");
+    printk("PT4 Offset: %ld PT3 Offset: %ld PT2 Offset: %ld PT1 Offset: %ld\r\n",
+    (vaddr >> 39) & 0x1FF, (vaddr >> 30) & 0x1FF, (vaddr >> 21) & 0x1FF, (vaddr >> 12) & 0x1FF);
     allocate_vaddr_page_four(vaddr);
     return;
 }
@@ -536,9 +601,9 @@ void debug_filled_entries(struct Page_Table_Entry* PT)
     printk("------- Page Table Walk --------\r\n");
     for (i=0; i < 512; i++)
     {
+        entry = PT + i;
         next = 0;
         next = (uint64_t)((entry->pt_base_addr_36_21 << 20) | (entry->pt_base_addr_20_5 << 4) | (entry->pt_base_addr_l4));
-        entry = PT + i;
         if(entry-> present == 1)
         {
             printk("\tTable Entry %d: PRESENT | NEXT: %lx\r\n", i, next);

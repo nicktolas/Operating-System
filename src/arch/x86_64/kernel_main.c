@@ -17,6 +17,8 @@ void kmain(void)
     while(hold){;}
     VGA_clear();
     gdt_assign_segments();
+    init_multiboot();
+    init_physical_paging();
     init_page_tables();
     interrupts_init();
     SER_init();
@@ -24,8 +26,8 @@ void kmain(void)
     enable_int_irq();
     asm("STI"); // enable interrupts
     
-    init_multiboot();
-    init_physical_paging();
+    
+    
     test_page_table();
     while(1)
     {

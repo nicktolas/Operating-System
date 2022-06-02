@@ -45,11 +45,11 @@ struct Page_Table_Entry
     uint8_t page_size:1; // end 8 byte bountry
     uint8_t global:1;
     uint8_t avail:3;
-    uint8_t pt_base_addr_l4: 4;
-    uint16_t pt_base_addr_20_5;
-    uint32_t pt_base_addr_36_21:20;
+    uint8_t pt_base_addr_l4: 4; // end 8
+    uint16_t pt_base_addr_20_5; // 16
+    uint32_t pt_base_addr_36_21:20; 
     uint32_t avail_top:11; 
-    uint32_t NX:1;
+    uint32_t NX:1; // 32 byte
 }__attribute__((packed));
 
 // Memory Manipulation
@@ -72,7 +72,7 @@ void write_page(void* pf, char* string, uint64_t length);
 void print_u8_no_prefix(uint8_t num);
 
 void init_page_frame(void* pf);
-
+uint64_t get_high_mem_addr();
 // virtual paging
 void init_page_tables(void);
 void setup_P4_entry(uint64_t vaddr);
