@@ -80,10 +80,19 @@ void* setup_P3_entry(uint64_t vaddr);
 void* setup_P2_entry(uint64_t vaddr);
 void* setup_P1_entry(uint64_t vaddr);
 
+// fault handling
+void allocate_vaddr_page_four(uint64_t vaddr);
+void* allocate_vaddr_page_three(uint64_t vaddr, void* PT3);
+void* allocate_vaddr_page_two(uint64_t vaddr, void* PT2);
+void* allocate_vaddr_page_one(uint64_t vaddr, void* PT1);
+
+void init_kernel_memory(void);
+
 //debug functions
 void debug_display_lists(void);
 void display_page_frame(void* pf);
 
 void dump_page_addresses(void);
-
+void debug_allocator(void);
+void debug_filled_entries(struct Page_Table_Entry* PT);
 #endif

@@ -26,7 +26,7 @@ void kmain(void)
     
     init_multiboot();
     init_physical_paging();
-    
+    test_page_table();
     while(1)
     {
         asm("hlt");

@@ -78,6 +78,7 @@ void test_paging(void)
 
 void test_page_table()
 {
-    dump_page_addresses();
+    // dump_page_addresses();
+    debug_allocator();
     return;
 }
