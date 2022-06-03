@@ -10,17 +10,36 @@ static struct Linked_List Avail_Pages;
 static struct Max_Page_Info max_page;
 static struct Page_Table_Entry* PT4;
 uint64_t old_cr3;
+uint64_t new_cr3;
 uint64_t high_mem_addr;
+void* last_alloced_page;
+
+struct Kernel_Stacks
+{
+    void* base_addr;
+    int num_stacks;
+};
+
+struct Kernel_Heap
+{
+    void* base_addr;
+    int num_stacks;
+};
+
+static struct Kernel_Heap k_heap_block;
+
+static struct Kernel_Stacks k_stacks_block;
 
 // Sets n bytes of memory to c starting at location defined by dst
 void * memset(void *dst, int c, size_t n)
 {
-    int i;
-    char* curr_pos = (char*)dst;
-    for (i=0;i<n;i++)
+    // int i;
+    unsigned char* curr_pos = (unsigned char*)dst;
+    while (n > 0)
     {
-        curr_pos[i] = c;
+        *curr_pos = c;
         curr_pos++;
+        n--;
     }
     return dst; 
 }
@@ -51,7 +70,11 @@ void outb(uint16_t port, uint8_t val)
     return;
 }
 
-/* --------------- Physical paging ---------------- */
+/* -------------------------------------------------------------
+
+                        Physical Pages
+
+   ------------------------------------------------------------- */
 
 /* Initializes PAGE_INIT_SIZE Pages into a Linked List of size PAGE_LIMIT_SIZE*/
 void init_physical_paging()
@@ -142,6 +165,7 @@ void * MMU_pf_alloc(void)
     curr_page = (struct Physical_Page_Frame*) ll_pop_node(&Avail_Pages, Avail_Pages.head); // pop node
     // ll_add_node(&Used_Pages, &curr_page->super); // add to used
     curr_page->type = 1; // now used
+    last_alloced_page = (void*)curr_page;
     return (void *) curr_page;
 }
 
@@ -295,13 +319,19 @@ void debug_display_lists(void)
     return;
 }
 
-/* ---------------- virutal memory  -------------------- */
+/* -------------------------------------------------------------
+
+                        Virtual Memory & Page Tables
+
+   ------------------------------------------------------------- */
 
 /* Initalizes the virtual page tables needed for paging.
    Sets up the identity map for our page table as the only init entry  */
 void init_page_tables()
 {
     setup_P4_entry(0);
+    old_cr3 = 0;
+    new_cr3 = 0;
     // read CR3
     asm volatile ("mov %%cr3, %0"
     :"=r"(old_cr3)
@@ -312,6 +342,10 @@ void init_page_tables()
     :
     : "r"(PT4)
     );
+    asm volatile ("mov %%cr3, %0"
+    :"=r"(new_cr3)
+    :
+    :);
     return;
 }
 
@@ -351,6 +385,7 @@ void* setup_P3_entry(uint64_t vaddr)
     int i;
     void* PT2;
     PT3 = MMU_pf_alloc();
+    memset((void*)PT3, 0, PAGE_SIZE);
     for (i=0; i<512; i++)
     {
         entry = (struct Page_Table_Entry*) PT3 + i;
@@ -378,6 +413,8 @@ void* setup_P2_entry(uint64_t vaddr)
     int i;
     void* PT1;
     PT2 = MMU_pf_alloc();
+    memset((void*)PT2, 0, PAGE_SIZE);
+    // printk("PT2 is %p\r\n", (void*)PT2);
     for (i=0; i<512; i++)
     {
         entry = (struct Page_Table_Entry*) PT2 + i;
@@ -404,6 +441,8 @@ void* setup_P1_entry(uint64_t vaddr)
     struct Page_Table_Entry* entry;
     int i;
     PT1 = MMU_pf_alloc();
+    // printk("\tAvail Pages Head: %p | PT1 is %p\r\n", (void*)Avail_Pages.head, (void*)PT1);
+    memset((void*)PT1, 0, PAGE_SIZE);
     // Identiy map the bottom pages
     for (i=0; i<512; i++)
     {
@@ -425,25 +464,21 @@ void* setup_P1_entry(uint64_t vaddr)
     return PT1;
 }
 
-/* Intitalizes the kernel growing data structures*/
-void init_kernel_memory(void)
-{
-    return;
-}
-
-/* Allocates a new page via the virtual address*/
-void allocate_vaddr_page_four(uint64_t vaddr)
+/* Walks the page table to resolve the virtual address (vaddr)
+   Free = zero: when you are looking to allocate the address if not present
+   Free = nonzero: when you are looking to free the allocated address       */
+void walk_vaddr_page_four(uint64_t vaddr, int free)
 {
     struct Page_Table_Entry* entry;
     void* PT3 = 0;
     int index;
     index = (vaddr >> 39) & 0x1FF; // 9 bit mask
     entry = (struct Page_Table_Entry*) PT4 + index;
-    printk("PT4\r\n");
-    debug_filled_entries((struct Page_Table_Entry*) PT4);
-    if(entry->present == 0) // does not have any pages below it, setup p4 entry and p3 entry
+    // printk("PT4\r\n");
+    // debug_filled_entries((struct Page_Table_Entry*) PT4);
+    if((entry->present == 0) && (free == 0)) // does not have any pages below it, setup p4 entry and p3 entry
     {
-        PT3 = allocate_vaddr_page_three(vaddr, NULL);
+        PT3 = walk_vaddr_page_three(vaddr, NULL, free);
         entry->pt_base_addr_l4 = ((uint64_t)PT3) & 0xF;
         entry->pt_base_addr_20_5 = (((uint64_t)PT3) >> 4) & 0xFFFF; // 16 bit value
         entry->pt_base_addr_36_21 = (((uint64_t)PT3) >> 20) & 0xFFFF; // 16 bit value
@@ -453,12 +488,15 @@ void allocate_vaddr_page_four(uint64_t vaddr)
     else
     {
         PT3 = (void*) (((uint64_t)(entry->pt_base_addr_36_21 << 20) | (entry->pt_base_addr_20_5 << 4) | (entry->pt_base_addr_l4)) << 12);
-        allocate_vaddr_page_three(vaddr, PT3);
+        walk_vaddr_page_three(vaddr, PT3, free);
     }
     return;
 }
 
-void* allocate_vaddr_page_three(uint64_t vaddr, void* old_PT3)
+/* Walks the page table to resolve the virtual address (vaddr)
+   Free = zero: when you are looking to allocate the address if not present
+   Free = nonzero: when you are looking to free the allocated address       */
+void* walk_vaddr_page_three(uint64_t vaddr, void* old_PT3, int free)
 {
     struct Page_Table_Entry* entry;
     void* PT2 = 0;
@@ -469,18 +507,18 @@ void* allocate_vaddr_page_three(uint64_t vaddr, void* old_PT3)
     {
         PT3 = MMU_pf_alloc();
         memset(PT3, 0, PAGE_SIZE);
-        printk("Alloc'd new PT3\r\n");
+        // printk("Alloc'd new PT3\r\n");
     }
     else
     {
         PT3 = old_PT3;
     }
-    printk("PT3\r\n");
-    debug_filled_entries((struct Page_Table_Entry*) PT3);
+    // printk("PT3\r\n");
+    // debug_filled_entries((struct Page_Table_Entry*) PT3);
     entry = (struct Page_Table_Entry*) PT3 + index;
-    if(entry->present == 0) // does not have present entry
+    if((entry->present == 0) && (free == 0)) // does not have present entry
     {
-        PT2 = allocate_vaddr_page_two(vaddr, NULL); // below page does not have entry
+        PT2 = walk_vaddr_page_two(vaddr, NULL, free); // below page does not have entry
         entry->pt_base_addr_l4 = ((uint64_t)PT2) & 0xF;
         entry->pt_base_addr_20_5 = (((uint64_t)PT2) >> 4) & 0xFFFF; // 16 bit value
         entry->pt_base_addr_36_21 = (((uint64_t)PT2) >> 20) & 0xFFFF; // 16 bit value
@@ -490,12 +528,15 @@ void* allocate_vaddr_page_three(uint64_t vaddr, void* old_PT3)
     else 
     {
         PT2 = (void*) (((uint64_t)(entry->pt_base_addr_36_21 << 20) | (entry->pt_base_addr_20_5 << 4) | (entry->pt_base_addr_l4)) << 12);
-        allocate_vaddr_page_two(vaddr, PT2);
+        walk_vaddr_page_two(vaddr, PT2, free);
     }
-    return (void*)((uint64_t)PT3 << 12);
+    return (void*)((uint64_t)PT3 >> 12);
 }
 
-void* allocate_vaddr_page_two(uint64_t vaddr, void* old_PT2)
+/* Walks the page table to resolve the virtual address (vaddr)
+   Free = zero: when you are looking to allocate the address if not present
+   Free = nonzero: when you are looking to free the allocated address       */
+void* walk_vaddr_page_two(uint64_t vaddr, void* old_PT2, int free)
 {
     struct Page_Table_Entry* entry;
     void* PT1 = 0;
@@ -506,18 +547,18 @@ void* allocate_vaddr_page_two(uint64_t vaddr, void* old_PT2)
     {
         PT2 = MMU_pf_alloc();
         memset(PT2, 0, PAGE_SIZE);
-        printk("Alloc'd new PT2 %p\r\n", PT2);
+        // printk("Alloc'd new PT2 %p\r\n", PT2);
     }
     else
     {
         PT2 = old_PT2;
     }
-    printk("PT2\r\n");
-    debug_filled_entries((struct Page_Table_Entry*) PT2);
+    // printk("PT2\r\n");
+    // debug_filled_entries((struct Page_Table_Entry*) PT2);
     entry = (struct Page_Table_Entry*) PT2 + index;
-    if(entry->present == 0) // does not have present entry
+    if((entry->present == 0) && (free == 0)) // does not have present entry
     {
-        PT1 = allocate_vaddr_page_one(vaddr, NULL); // below page does not have entry
+        PT1 = walk_vaddr_page_one(vaddr, NULL, free); // below page does not have entry
         entry->pt_base_addr_l4 = ((uint64_t)PT1) & 0xF;
         entry->pt_base_addr_20_5 = (((uint64_t)PT1) >> 4) & 0xFFFF; // 16 bit value
         entry->pt_base_addr_36_21 = (((uint64_t)PT1) >> 20) & 0xFFFF; // 16 bit value
@@ -527,12 +568,15 @@ void* allocate_vaddr_page_two(uint64_t vaddr, void* old_PT2)
     else
     {
         PT1 = (void*) (((uint64_t)(entry->pt_base_addr_36_21 << 20) | (entry->pt_base_addr_20_5 << 4) | (entry->pt_base_addr_l4)) << 12);
-        allocate_vaddr_page_one(vaddr, PT1);
+        walk_vaddr_page_one(vaddr, PT1, free);
     }
-    return (void*)((uint64_t)PT2 << 12);
+    return (void*)((uint64_t)PT2 >> 12);
 }
 
-void* allocate_vaddr_page_one(uint64_t vaddr, void* old_PT1)
+/* Walks the page table to resolve the virtual address (vaddr)
+   Free = zero: when you are looking to allocate the address if not present
+   Free = nonzero: when you are looking to free the allocated address       */
+void* walk_vaddr_page_one(uint64_t vaddr, void* old_PT1, int free)
 {
     struct Page_Table_Entry* entry;
     void* page = 0;
@@ -543,16 +587,16 @@ void* allocate_vaddr_page_one(uint64_t vaddr, void* old_PT1)
     {
         PT1 = MMU_pf_alloc();
         memset(PT1, 0, PAGE_SIZE);
-        printk("Alloc'd new PT1\r\n");
+        // printk("Alloc'd new PT1\r\n");
     }
     else
     {
         PT1 = old_PT1;
     }
-    printk("PT1\r\n");
-    debug_filled_entries((struct Page_Table_Entry*) PT1);
+    // printk("PT1\r\n");
+    // debug_filled_entries((struct Page_Table_Entry*) PT1);
     entry = (struct Page_Table_Entry*) PT1 + index;
-    if(entry->present == 0) // does not have present entry
+    if((entry->present == 0) && (free == 0)) // does not have present entry
     {
         page = MMU_pf_alloc(); 
         entry->pt_base_addr_l4 = ((uint64_t)page >> 12) & 0xF;
@@ -561,31 +605,54 @@ void* allocate_vaddr_page_one(uint64_t vaddr, void* old_PT1)
         entry->present = 1;
         entry->writable = 1;
     }
-    else
+    else if((entry->present == 1) && (free == 1)) // free an allocated item
     {
-        printk("HIT ON ENTRY: %lx\r\n", vaddr);
+        page = 0;
+        page = PT1 = (void*) (((uint64_t)(entry->pt_base_addr_36_21 << 20) | (entry->pt_base_addr_20_5 << 4) | (entry->pt_base_addr_l4)) << 12);
+        printk("Freeing Page %p for virtual address %lx\r\n", page, vaddr);
+        MMU_pf_free(page);
+        entry->present = 0;
+    }
+    else // previously allocated address
+    {
+        if(entry->present == 1)
+        {
+            printk("Tried Allocating an existing entry: %lx\r\n", vaddr);
+        }
+        else if(free == 1) // should never be hit?
+        {
+            printk("Tried to free an non present entry: %lx\r\n", vaddr);
+        }
         return NULL; // this shouldnt happen
     }
-    
-    return (void*)((uint64_t)PT1 << 12);
+    return (void*)((uint64_t)PT1 >> 12);
 }
 
 // debug functions
 
 void dump_page_addresses()
 {
-    printk("Old CR3 address: %lx\r\nNew CR3 address: %p\r\n", old_cr3, (void*)PT4);
+    printk("Old CR3 address: %lx\r\nNew CR3 address: %lx\r\n", old_cr3, new_cr3);
     return;
 }
 
 void debug_allocator(void)
 {
-    uint64_t vaddr = 0x100000b;
-    printk("Testing the following Address 0x100000b\r\n");
-    printk("PT4 Offset: %ld PT3 Offset: %ld PT2 Offset: %ld PT1 Offset: %ld\r\n",
-    (vaddr >> 39) & 0x1FF, (vaddr >> 30) & 0x1FF, (vaddr >> 21) & 0x1FF, (vaddr >> 12) & 0x1FF);
-    allocate_vaddr_page_four(vaddr);
-    allocate_vaddr_page_four(vaddr);
+    uint64_t vaddr = 0xDEADBEEF;
+    dump_page_addresses();
+    printk("Testing the following Address %lx\r\n", vaddr);
+    // printk("PT4 Offset: %ld PT3 Offset: %ld PT2 Offset: %ld PT1 Offset: %ld\r\n",
+    // (vaddr >> 39) & 0x1FF, (vaddr >> 30) & 0x1FF, (vaddr >> 21) & 0x1FF, (vaddr >> 12) & 0x1FF);
+    printk("Allocating %lx\r\n", vaddr);
+    walk_vaddr_page_four(vaddr, 0);
+    printk("Double Allocating %lx\r\n", vaddr);
+    walk_vaddr_page_four(vaddr, 0);
+    printk("Freeing %lx\r\n", vaddr);
+    walk_vaddr_page_four(vaddr, 1);
+    printk("Double Freeing %lx\r\n", vaddr);
+    walk_vaddr_page_four(vaddr, 1);
+    printk("Allocating %lx\r\n", vaddr);
+    walk_vaddr_page_four(vaddr, 0);
     return;
 }
 
@@ -605,4 +672,27 @@ void debug_filled_entries(struct Page_Table_Entry* PT)
             printk("\tTable Entry %d: PRESENT | NEXT: %lx\r\n", i, next);
         }
     }
+}
+
+
+
+/* -------------------------------------------------------------
+
+                        Kernel Dynamic Memory
+
+   ------------------------------------------------------------- */
+
+void init_kernel_dynamic_structs()
+{
+    return;
+}
+
+void init_kernel_stacks()
+{
+    return;
+}
+
+void init_kernel_heap()
+{
+    return;
 }

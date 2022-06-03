@@ -28,17 +28,20 @@ void test_paging(void)
 {
     
     int i;
-    char buf[50] = {0};
-    printk("\r\nTesting Paging\r\n");
-    printk("\r\nInitialize 10 Pages\r\n");
+    int max_entries = 0;
+    // char buf[50] = {0};
+    // printk("\r\nTesting Paging\r\n");
+    // printk("\r\nInitialize All Pages\r\n");
     for(i=0; i < 50000; i++)
     {
         if((test_pages[i] = MMU_pf_alloc()) == NULL)
         {
+            max_entries = i;
+            // printk("Max entries is: %d", max_entries);
             break;
         }
     }
-    debug_display_lists();
+    // debug_display_lists();
     // printk("Free the 5th Page: %p\r\n", test_pages[4]);
     // MMU_pf_free(test_pages[4]);
     // debug_display_lists();
@@ -51,21 +54,20 @@ void test_paging(void)
     // display_page_frame(test_pages[0]);
     // display_page_frame(test_pages[1]);
     // display_page_frame(test_pages[2]);
-
-    for(i=0; i < 50000; i++)
+    // printk("\r\nWriting to all pages\r\n");
+    for(i=0; i < max_entries+1; i++)
     {
-        buf[0] = (uint8_t) ((uint64_t)test_pages[i] & 0xFF);
-        buf[1] = (uint8_t) (((uint64_t)test_pages[i] & 0xFFFF) >> 8);
-        buf[3] = (uint8_t) (((uint64_t)test_pages[i] & 0xFFFFFF) >> 16);
-        buf[4] = (uint8_t) (((uint64_t)test_pages[i]) >> 24);
-        buf[5] = '\0';
-        write_page(test_pages[i], buf, 5);
+        memset(test_pages[i], 0, PAGE_SIZE);
     }
-    for(i=0; i < 50000; i = i + 2500)
+    for(i=0; i < max_entries+1; i ++)
     {
-        display_page_content(test_pages[i]);
+        MMU_pf_free(test_pages[i]);
     }
-    printk("wrote to all\r\n");
+    // for(i=0; i < 50000; i = i + 2500)
+    // {
+    //     display_page_content(test_pages[i]);
+    // }
+    // printk("wrote to all\r\n");
     // write_page(test_pages[0], "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 33);
     // write_page(test_pages[1], "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", 33);
     // write_page(test_pages[2], "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", 33);
@@ -80,5 +82,10 @@ void test_page_table()
 {
     // dump_page_addresses();
     debug_allocator();
+    return;
+}
+
+void test_kernel_heap_allocation()
+{
     return;
 }

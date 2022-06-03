@@ -25,9 +25,9 @@ void kmain(void)
     keyboard_init();
     enable_int_irq();
     asm("STI"); // enable interrupts
+
     
-    
-    
+
     test_page_table();
     while(1)
     {

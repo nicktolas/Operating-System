@@ -71,7 +71,7 @@ struct Node* ll_pop_node(struct Linked_List* ll, struct Node* req_node)
     {
         ll->tail = prev_node;
     }
-    else // regular case
+    else // regular case | prev node - req node - next node
     {
         prev_node->next = next_node;
         next_node->prev = prev_node;
@@ -92,7 +92,7 @@ void ll_add_node(struct Linked_List* ll, struct Node* req_node)
         req_node->next = NULL;
         req_node->prev = NULL;
     }
-    else // list has nodes
+    else // list has nodes | ll->tail - req_node - NULL
     {
         req_node->prev = ll->tail;
         ll->tail->next = req_node;

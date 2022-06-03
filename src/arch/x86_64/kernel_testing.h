@@ -9,4 +9,6 @@ void test_paging(void);
 
 void test_page_table(void);
 
+void test_kernel_heap_allocation(void);
+
 #endif

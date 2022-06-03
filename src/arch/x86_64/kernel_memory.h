@@ -79,14 +79,17 @@ void setup_P4_entry(uint64_t vaddr);
 void* setup_P3_entry(uint64_t vaddr);
 void* setup_P2_entry(uint64_t vaddr);
 void* setup_P1_entry(uint64_t vaddr);
+void walk_vaddr_page_four(uint64_t vaddr, int free);
+void* walk_vaddr_page_three(uint64_t vaddr, void* PT3, int free);
+void* walk_vaddr_page_two(uint64_t vaddr, void* PT2, int free);
+void* walk_vaddr_page_one(uint64_t vaddr, void* PT1, int free);
 
-// fault handling
-void allocate_vaddr_page_four(uint64_t vaddr);
-void* allocate_vaddr_page_three(uint64_t vaddr, void* PT3);
-void* allocate_vaddr_page_two(uint64_t vaddr, void* PT2);
-void* allocate_vaddr_page_one(uint64_t vaddr, void* PT1);
 
-void init_kernel_memory(void);
+// kernel dynamic structures
+
+void init_kernel_dynamic_structs(void);
+void init_kernel_stacks();
+void init_kernel_heap();
 
 //debug functions
 void debug_display_lists(void);
