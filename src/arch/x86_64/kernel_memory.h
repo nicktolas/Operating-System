@@ -84,7 +84,9 @@ void* walk_vaddr_page_three(uint64_t vaddr, void* PT3, int free);
 void* walk_vaddr_page_two(uint64_t vaddr, void* PT2, int free);
 void* walk_vaddr_page_one(uint64_t vaddr, void* PT1, int free);
 
-
+void page_fault_isr(int error_code);
+void alloc_vaddr(void* vaddr);
+void free_vaddr(void* vaddr);
 // kernel dynamic structures
 
 void init_kernel_dynamic_structs(void);

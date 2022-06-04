@@ -26,9 +26,9 @@ struct Kernel_Heap
     int num_stacks;
 };
 
-static struct Kernel_Heap k_heap_block;
+// static struct Kernel_Heap k_heap_block;
 
-static struct Kernel_Stacks k_stacks_block;
+// static struct Kernel_Stacks k_stacks_block;
 
 // Sets n bytes of memory to c starting at location defined by dst
 void * memset(void *dst, int c, size_t n)
@@ -604,6 +604,7 @@ void* walk_vaddr_page_one(uint64_t vaddr, void* old_PT1, int free)
         entry->pt_base_addr_36_21 = (((uint64_t)page >> 12) >> 20) & 0xFFFF; // 16 bit value
         entry->present = 1;
         entry->writable = 1;
+        printk("Allocated page %p for virtual address %lx\r\n", page, vaddr);
     }
     else if((entry->present == 1) && (free == 1)) // free an allocated item
     {
@@ -628,6 +629,36 @@ void* walk_vaddr_page_one(uint64_t vaddr, void* old_PT1, int free)
     return (void*)((uint64_t)PT1 >> 12);
 }
 
+/* Page Fault ISR */
+void page_fault_isr(int error_code)
+{
+    uint64_t cr2;
+    uint64_t cr3;
+    asm volatile ("mov %%cr3, %0"
+    :"=r"(cr3)
+    :
+    :);
+    asm volatile ("mov %%cr2, %0"
+    :"=r"(cr2)
+    :
+    :);
+    printk("Page Table 4 Address: %lx\r\nAddress that caused the fault: %lx\r\n", cr3, cr2);
+    alloc_vaddr((void*)cr2); // allocate the page
+    return;
+}
+
+void alloc_vaddr(void* vaddr)
+{
+    walk_vaddr_page_four((uint64_t)vaddr, 0);
+    return;
+}
+
+void free_vaddr(void* vaddr)
+{
+    walk_vaddr_page_four((uint64_t)vaddr, 1);
+    return;
+}
+
 // debug functions
 
 void dump_page_addresses()
@@ -638,21 +669,32 @@ void dump_page_addresses()
 
 void debug_allocator(void)
 {
-    uint64_t vaddr = 0xDEADBEEF;
+    void* vaddr = (void*)0xDEADBEEF;
     dump_page_addresses();
-    printk("Testing the following Address %lx\r\n", vaddr);
+    printk("Testing the following Address %p\r\n", vaddr);
     // printk("PT4 Offset: %ld PT3 Offset: %ld PT2 Offset: %ld PT1 Offset: %ld\r\n",
     // (vaddr >> 39) & 0x1FF, (vaddr >> 30) & 0x1FF, (vaddr >> 21) & 0x1FF, (vaddr >> 12) & 0x1FF);
-    printk("Allocating %lx\r\n", vaddr);
-    walk_vaddr_page_four(vaddr, 0);
-    printk("Double Allocating %lx\r\n", vaddr);
-    walk_vaddr_page_four(vaddr, 0);
-    printk("Freeing %lx\r\n", vaddr);
-    walk_vaddr_page_four(vaddr, 1);
-    printk("Double Freeing %lx\r\n", vaddr);
-    walk_vaddr_page_four(vaddr, 1);
-    printk("Allocating %lx\r\n", vaddr);
-    walk_vaddr_page_four(vaddr, 0);
+    // printk("Allocating %lx\r\n", vaddr);
+    // walk_vaddr_page_four(vaddr, 0);
+    // printk("Double Allocating %lx\r\n", vaddr);
+    // walk_vaddr_page_four(vaddr, 0);
+    // printk("Freeing %lx\r\n", vaddr);
+    // walk_vaddr_page_four(vaddr, 1);
+    // printk("Double Freeing %lx\r\n", vaddr);
+    // walk_vaddr_page_four(vaddr, 1);
+    // printk("Allocating %lx\r\n", vaddr);
+    // walk_vaddr_page_four(vaddr, 0);
+    printk("\r\nassigning to int....\r\n\r\n");
+    *(int*)vaddr = 69;
+    printk("\t---The value we have is %d\r\n", *(int*)vaddr);
+    printk("\r\nFree the address....\r\n\r\n");
+    free_vaddr(vaddr);
+    printk("\r\nassigning a another time....\r\n\r\n");
+    *(int*)vaddr = 69;
+    printk("\t---The value we have is %d\r\n", *(int*)vaddr);
+    printk("\r\nassigning a another time, no fault please!\r\n\r\n");
+    *(int*)vaddr = 420;
+    printk("\t---The value we have is %d\r\n", *(int*)vaddr);
     return;
 }
 
@@ -673,6 +715,7 @@ void debug_filled_entries(struct Page_Table_Entry* PT)
         }
     }
 }
+
 
 
 

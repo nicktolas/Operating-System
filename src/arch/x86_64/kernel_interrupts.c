@@ -8,7 +8,6 @@
 
 
 struct Call_Gate_Descriptor Int_Desc_Table_Entries[256] = {0};
-
 void interrupts_init(void)
 {
     idt_init();
@@ -105,7 +104,7 @@ void gen_isr_handler(int irq_num, int error_code)
 
         case 14: //page fault
             printk("\r\nPage Fault: %d\r\n", error_code);
-            asm("hlt;");
+            page_fault_isr(error_code);
             break;
         
         case 32: // Programmable Timer Interrupt
