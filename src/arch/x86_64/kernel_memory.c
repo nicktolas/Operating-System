@@ -228,24 +228,24 @@ void display_page_content(void* pf)
     uint64_t offset = 0;
     uint8_t val = 0;
     int row = 0;
-    // printk("\r\n-- Page at %p --\r\n", pf);
+    printk("\r\n-- Page at %p --\r\n", pf);
     for(offset = 0; offset<PAGE_SIZE; offset = offset + 1)
     {
         if(offset % 64 == 0)
         {
             if(row < 10)
             {
-                // printk("\r\n Row 0%d: ", row);
+                printk("\r\n Row 0%d: ", row);
             }
             else
             {
-                // printk("\r\n Row %d: ", row);
+                printk("\r\n Row %d: ", row);
             }
             row++;
         }
         if(offset % 4 == 0)
         {
-            // printk(" ");
+            printk(" ");
         }
         memcpy(&val, (void*)((uint64_t)pf + offset), 1);
         print_u8_no_prefix(val);
@@ -599,11 +599,13 @@ void* walk_vaddr_page_one(uint64_t vaddr, void* old_PT1, int free)
     if((entry->present == 0) && (free == 0)) // does not have present entry
     {
         page = MMU_pf_alloc(); 
+        memset(page, 0, PAGE_SIZE);
         entry->pt_base_addr_l4 = ((uint64_t)page >> 12) & 0xF;
         entry->pt_base_addr_20_5 = (((uint64_t)page >> 12) >> 4) & 0xFFFF; // 16 bit value
         entry->pt_base_addr_36_21 = (((uint64_t)page >> 12) >> 20) & 0xFFFF; // 16 bit value
         entry->present = 1;
         entry->writable = 1;
+        // entry->write_cache = 1;
         printk("Allocated page %p for virtual address %lx\r\n", page, vaddr);
     }
     else if((entry->present == 1) && (free == 1)) // free an allocated item
@@ -618,7 +620,7 @@ void* walk_vaddr_page_one(uint64_t vaddr, void* old_PT1, int free)
     {
         if(entry->present == 1)
         {
-            printk("Tried Allocating an existing entry: %lx\r\n", vaddr);
+            printk("Tried Allocating an existing entry: %lx with index %d\r\n", vaddr, index);
         }
         else if(free == 1) // should never be hit?
         {
@@ -669,13 +671,12 @@ void dump_page_addresses()
 
 void debug_allocator(void)
 {
-    void* vaddr = (void*)0xDEADBEEF;
+    int* vaddr = (int*)0xDEADBEEF;
     dump_page_addresses();
     printk("Testing the following Address %p\r\n", vaddr);
     // printk("PT4 Offset: %ld PT3 Offset: %ld PT2 Offset: %ld PT1 Offset: %ld\r\n",
     // (vaddr >> 39) & 0x1FF, (vaddr >> 30) & 0x1FF, (vaddr >> 21) & 0x1FF, (vaddr >> 12) & 0x1FF);
-    // printk("Allocating %lx\r\n", vaddr);
-    // walk_vaddr_page_four(vaddr, 0);
+    
     // printk("Double Allocating %lx\r\n", vaddr);
     // walk_vaddr_page_four(vaddr, 0);
     // printk("Freeing %lx\r\n", vaddr);
@@ -685,16 +686,22 @@ void debug_allocator(void)
     // printk("Allocating %lx\r\n", vaddr);
     // walk_vaddr_page_four(vaddr, 0);
     printk("\r\nassigning to int....\r\n\r\n");
-    *(int*)vaddr = 69;
-    printk("\t---The value we have is %d\r\n", *(int*)vaddr);
-    printk("\r\nFree the address....\r\n\r\n");
-    free_vaddr(vaddr);
-    printk("\r\nassigning a another time....\r\n\r\n");
-    *(int*)vaddr = 69;
-    printk("\t---The value we have is %d\r\n", *(int*)vaddr);
-    printk("\r\nassigning a another time, no fault please!\r\n\r\n");
-    *(int*)vaddr = 420;
-    printk("\t---The value we have is %d\r\n", *(int*)vaddr);
+    *vaddr = 420;
+    alloc_vaddr(vaddr);
+    display_page_content(last_alloced_page);
+    printk("\t---The value we have is %d\r\n", *vaddr);
+    *vaddr = 420;
+    display_page_content(last_alloced_page);
+    printk("\t---The value we have is %d\r\n", *vaddr);
+    // printk("\r\nFree the address....\r\n\r\n");
+    // free_vaddr((void*)vaddr);
+    // printk("\r\nassigning a another time....\r\n\r\n");
+    // *vaddr = 420420420;
+    // printk("\t---The value we have is %d\r\n", *vaddr);
+    // printk("\r\nassigning a another time, no fault please!\r\n\r\n");
+    // *vaddr = 420;
+    // display_page_content(last_alloced_page);
+    // printk("\t---The value we have is %d\r\n", *vaddr);
     return;
 }
 
