@@ -18,12 +18,19 @@
 #define PT2_ADDR_OFFSET 2097152
 #define PT3_ADDR_OFFSET 1073741824
 #define PT4_ADDR_OFFSET 549755813888
+#define MB_TO_PAGE 1000
+
+struct Heap_Frame
+{
+    struct Node curr;
+    size_t size;
+}__attribute__((packed));
 
 struct Max_Page_Info
 {
     uint64_t addr;
     struct Memory_Map_Node* memory_chunk;
-}__attribute((packed));
+}__attribute__((packed));
 
 struct Physical_Page_Frame
 {
@@ -87,11 +94,13 @@ void* walk_vaddr_page_one(uint64_t vaddr, void* PT1, int free);
 void page_fault_isr(int error_code);
 void alloc_vaddr(void* vaddr);
 void free_vaddr(void* vaddr);
+
 // kernel dynamic structures
 
 void init_kernel_dynamic_structs(void);
 void init_kernel_stacks();
 void init_kernel_heap();
+void* kmalloc(size_t req_size);
 
 //debug functions
 void debug_display_lists(void);

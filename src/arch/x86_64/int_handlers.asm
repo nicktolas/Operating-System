@@ -1855,6 +1855,7 @@ asm_isr_255:
 gen_handler:
 	push rsp
 	push rbp ; push all caller save registers
+	push rax
 	push rbx
 	push r12
 	push r13
@@ -1868,6 +1869,7 @@ gen_return:
 	pop r13
 	pop r12
 	pop rbx
+	pop rax
 	pop rbp
 	pop rsp
 	pop rdi

@@ -23,10 +23,12 @@ struct Kernel_Stacks
 struct Kernel_Heap
 {
     void* base_addr;
-    int num_stacks;
+    struct Linked_List free_items;
+    uint64_t num_blocks;
+    uint64_t next_avail_addr;
 };
 
-// static struct Kernel_Heap k_heap_block;
+static struct Kernel_Heap k_heap_block;
 
 // static struct Kernel_Stacks k_stacks_block;
 
@@ -606,13 +608,13 @@ void* walk_vaddr_page_one(uint64_t vaddr, void* old_PT1, int free)
         entry->present = 1;
         entry->writable = 1;
         // entry->write_cache = 1;
-        printk("Allocated page %p for virtual address %lx\r\n", page, vaddr);
+        // printk("Allocated page %p for virtual address %lx\r\n", page, vaddr);
     }
     else if((entry->present == 1) && (free == 1)) // free an allocated item
     {
         page = 0;
         page = PT1 = (void*) (((uint64_t)(entry->pt_base_addr_36_21 << 20) | (entry->pt_base_addr_20_5 << 4) | (entry->pt_base_addr_l4)) << 12);
-        printk("Freeing Page %p for virtual address %lx\r\n", page, vaddr);
+        // printk("Freeing Page %p for virtual address %lx\r\n", page, vaddr);
         MMU_pf_free(page);
         entry->present = 0;
     }
@@ -644,7 +646,7 @@ void page_fault_isr(int error_code)
     :"=r"(cr2)
     :
     :);
-    printk("Page Table 4 Address: %lx\r\nAddress that caused the fault: %lx\r\n", cr3, cr2);
+    // printk("Page Table 4 Address: %lx\r\nAddress that caused the fault: %lx\r\n", cr3, cr2);
     alloc_vaddr((void*)cr2); // allocate the page
     return;
 }
@@ -687,21 +689,20 @@ void debug_allocator(void)
     // walk_vaddr_page_four(vaddr, 0);
     printk("\r\nassigning to int....\r\n\r\n");
     *vaddr = 420;
-    alloc_vaddr(vaddr);
-    display_page_content(last_alloced_page);
-    printk("\t---The value we have is %d\r\n", *vaddr);
-    *vaddr = 420;
-    display_page_content(last_alloced_page);
-    printk("\t---The value we have is %d\r\n", *vaddr);
-    // printk("\r\nFree the address....\r\n\r\n");
-    // free_vaddr((void*)vaddr);
-    // printk("\r\nassigning a another time....\r\n\r\n");
-    // *vaddr = 420420420;
-    // printk("\t---The value we have is %d\r\n", *vaddr);
-    // printk("\r\nassigning a another time, no fault please!\r\n\r\n");
-    // *vaddr = 420;
     // display_page_content(last_alloced_page);
-    // printk("\t---The value we have is %d\r\n", *vaddr);
+    printk("\t---The value we have is %d\r\n", *vaddr);
+    *vaddr = 420420;
+    // display_page_content(last_alloced_page);
+    printk("\t---The value we have is %d\r\n", *vaddr);
+    printk("\r\nFree the address....\r\n\r\n");
+    free_vaddr((void*)vaddr);
+    printk("\r\nassigning a another time....\r\n\r\n");
+    *vaddr = 420420420;
+    printk("\t---The value we have is %d\r\n", *vaddr);
+    printk("\r\nassigning a another time, no fault please!\r\n\r\n");
+    *vaddr = 420;
+    // display_page_content(last_alloced_page);
+    printk("\t---The value we have is %d\r\n", *vaddr);
     return;
 }
 
@@ -734,6 +735,7 @@ void debug_filled_entries(struct Page_Table_Entry* PT)
 
 void init_kernel_dynamic_structs()
 {
+    init_kernel_heap();
     return;
 }
 
@@ -744,5 +746,65 @@ void init_kernel_stacks()
 
 void init_kernel_heap()
 {
+    k_heap_block.base_addr = MMU_KHEAP_MAP; //virtual address used as base of heap (grows down)
+    k_heap_block.num_blocks = 0;
+    k_heap_block.next_avail_addr = MMU_KHEAP_MAP; // starts with nothing in the list
+    k_heap_block.free_items.head = NULL;
+    k_heap_block.free_items.tail = NULL;
+    k_heap_block.free_items.length = 0;
     return;
+}
+
+static void add_pages_to_list(int pages_needed)
+{
+    int offset = 0;
+    int i = 0;
+    struct Heap_Frame* curr_page = (void*)k_heap_block.next_avail_addr; // first avail address to add
+    for(i=0; i < pages_needed; i++)
+    {
+        alloc_vaddr((void*)(k_heap_block.next_avail_addr + (i*PAGE_SIZE))); // addresses now have physical pages assigned to them
+    }
+    init_node(&(curr_page->curr)); // initialize node
+    curr_page->size = PAGE_SIZE*i; // setup size
+    k_heap_block.next_avail_addr = k_heap_block.next_avail_addr + ((i+1)*PAGE_SIZE); // next avail address is after
+    ll_add_node(&(k_heap_block.free_items), &(curr_page->curr)); // add item to free list
+    return;
+}
+
+/* Divides the block of memory into a smaller one and returns the pointer to the allocated address. */
+static void* divide_block(struct Heap_Frame* curr_frame)
+{
+    return curr_frame;
+}
+
+/* Returns a virtually continugous block memory of size, req_size, starting at the returned pointer. 
+   Returns NULL if req_size bytes cannot be contiguously allocated.                                  */
+void* init_kmalloc(size_t req_size)
+{
+    void* return_addr = NULL;
+    int true_size = req_size + sizeof(struct Heap_Frame);
+    struct Heap_Frame* curr_frame = NULL;
+    if(k_heap_block.free_items.head == NULL) // first time mallocing or no items in list
+    {
+        add_pages_to_list(MB_TO_PAGE); // adds 1MB of bytes to pool
+    }
+    curr_frame = (struct Heap_Frame*) k_heap_block.free_items.head;
+    while(1) // TODO: break if ran out of memory
+    {
+        if(curr_frame->size >= true_size) // can fit the allocation
+        {
+            return divide_block(curr_frame); // divide the block and return the frame
+        }
+        if(curr_frame->curr.next == NULL) // nothing left to allocate, curr_frame->next
+        {
+            add_pages_to_list(MB_TO_PAGE); // adds 1MB of bytes to pool
+            if(curr_frame->curr.next == NULL) // debug
+            {
+                printk("ERROR: Curr_frame still NULL\r\n");
+                asm("hlt");
+            }
+        }
+        curr_frame = (struct Heap_Frame*) curr_frame->curr.next; // iterate to next node
+    }
+    return return_addr; // should always be NULL
 }
