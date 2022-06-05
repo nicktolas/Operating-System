@@ -18,6 +18,20 @@ struct Linked_List
     int length;
 };
 
+struct Tree_Node
+{
+    struct Tree_Node* left;
+    struct Tree_Node* right;
+    struct Tree_Node* parent;
+    int data;
+};
+
+struct Binary_Tree
+{
+    int length;
+    struct Tree_Node* root;
+};
+
 void init_node(struct Node*);
 void free_node(struct Node*);
 
@@ -27,4 +41,11 @@ struct Node* ll_get_node(struct Linked_List* ll , int req_data);
 struct Node* ll_pop_node(struct Linked_List*ll, struct Node* req_node);
 void ll_add_node(struct Linked_List* ll, struct Node* req_node);
 void ll_del_node(struct Linked_List* ll, struct Node* req_node);
+
+void init_tree_node(struct Tree_Node* curr);
+void init_btree(struct Binary_Tree* bt);
+
+//random
+
+uint64_t my_pow(uint64_t base, uint64_t exp);
 #endif

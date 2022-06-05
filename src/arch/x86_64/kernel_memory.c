@@ -23,14 +23,13 @@ struct Kernel_Stacks
 struct Kernel_Heap
 {
     void* base_addr;
-    struct Linked_List free_items;
-    uint64_t num_blocks;
-    uint64_t next_avail_addr;
+    struct Heap_Frame* base;
+    uint64_t length;
 };
 
-static struct Kernel_Heap k_heap_block;
+static struct Kernel_Heap k_heap;
 
-// static struct Kernel_Stacks k_stacks_block;
+// static struct Kernel_Stacks k_stacks;
 
 // Sets n bytes of memory to c starting at location defined by dst
 void * memset(void *dst, int c, size_t n)
@@ -744,67 +743,128 @@ void init_kernel_stacks()
     return;
 }
 
+
+/* Initalizes the heap frame that will rest on a page*/
+static void init_heap_frame(struct Heap_Frame* hf, int ord)
+{
+    hf->allocated = 0;
+    hf->order = ord;
+    return;
+}
+
 void init_kernel_heap()
 {
-    k_heap_block.base_addr = MMU_KHEAP_MAP; //virtual address used as base of heap (grows down)
-    k_heap_block.num_blocks = 0;
-    k_heap_block.next_avail_addr = MMU_KHEAP_MAP; // starts with nothing in the list
-    k_heap_block.free_items.head = NULL;
-    k_heap_block.free_items.tail = NULL;
-    k_heap_block.free_items.length = 0;
+    k_heap.base = (void*)MMU_KHEAP_MAP; //virtual address used as base of heap (grows down)
+    k_heap.length = 1; // starts with nothing in the list
+    // printk("Setting the Initial Node for our binary tree at addr %p ...\r\n", k_heap.base_addr);
+    init_heap_frame(k_heap.base, MAX_BUDDY_ORDER);
     return;
 }
 
-static void add_pages_to_list(int pages_needed)
+static void debug_heap_frame(struct Heap_Frame* hf)
 {
-    int offset = 0;
-    int i = 0;
-    struct Heap_Frame* curr_page = (void*)k_heap_block.next_avail_addr; // first avail address to add
-    for(i=0; i < pages_needed; i++)
+    printk("Heap Frame %p: Allocated %d Order %d\r\n",(void*)hf, hf->allocated, hf->order);
+    return;
+}
+
+
+
+/* Helper Function to create new memory blocks for a parent */
+static int create_buddy(struct Heap_Frame* parent)
+{
+    int new_order = parent->order - 1;
+    long int address_offset;
+    struct Heap_Frame* rchild;
+    if(new_order < 0) // cant go below 0
     {
-        alloc_vaddr((void*)(k_heap_block.next_avail_addr + (i*PAGE_SIZE))); // addresses now have physical pages assigned to them
+        return -1;
     }
-    init_node(&(curr_page->curr)); // initialize node
-    curr_page->size = PAGE_SIZE*i; // setup size
-    k_heap_block.next_avail_addr = k_heap_block.next_avail_addr + ((i+1)*PAGE_SIZE); // next avail address is after
-    ll_add_node(&(k_heap_block.free_items), &(curr_page->curr)); // add item to free list
-    return;
+    rchild = (struct Heap_Frame*) (((uint64_t)parent) + ((my_pow(2, new_order))* PAGE_SIZE));
+    address_offset = (my_pow(2, new_order))* PAGE_SIZE;
+    init_heap_frame( (struct Heap_Frame*) ((uint64_t)parent), new_order);                                   // l child frame
+    init_heap_frame( rchild, parent->order); // r child frame
+    k_heap.length++;
+    printk("\tAddress Offset should be %lx\r\n \r\n", address_offset);
+    printk("\tSplit L child %p into order %d\r\n", (void*)parent, parent->order);
+    printk("\tSplit R child %p into order %d\r\n", (void*)rchild, rchild->order);
+    return parent->order;
 }
 
-/* Divides the block of memory into a smaller one and returns the pointer to the allocated address. */
-static void* divide_block(struct Heap_Frame* curr_frame)
+/* Iterates over the memory space until it finds a fit for the allocation. 
+   Returns the smallest order that fits the requested size allocation.
+   This will split the tree into smaller order blocks until order 0 reached. 
+   If no block can be found, returns NULL. */
+static void* buddy_find_home(struct Heap_Frame* parent, int desired_order)
 {
-    return curr_frame;
+    void* found_addr = NULL;
+    printk("Finding Home: Parent %p of Order %d, with desired order as %d\r\n", (void*)parent, parent->order, desired_order);
+    // parent can fit and is unallocated
+    if((parent->order == desired_order) && (parent->allocated == 0))
+    {
+        parent->allocated = 1;
+        found_addr = (void*)(parent++); // returns the address at end of pointer
+        printk("Found a fit of order %d at %p with final addr as %p\r\n", parent->order, (void*)parent, found_addr);
+        return found_addr;
+    }
+    // current block can be split into smaller blocks
+    if ((parent->order > desired_order) && (parent->allocated == 0))
+    {
+        if(create_buddy(parent) < 0)
+        {
+            printk("Unable to split parent into smaller block\r\n");
+            while(1)
+                asm("hlt;");
+        }
+        // block is split into smaller one, call this function again
+        return buddy_find_home(parent, desired_order);
+    }
+    printk("Walking Heap: Order %d with offset %lx\r\n",parent->order, ((my_pow(2, parent->order))* PAGE_SIZE) );
+    return buddy_find_home( (struct Heap_Frame*) (((uint64_t)parent) + ((my_pow(2, parent->order))* PAGE_SIZE)) , desired_order);
 }
 
-/* Returns a virtually continugous block memory of size, req_size, starting at the returned pointer. 
+/* Determines the pool size needed for the object itself*/
+static int find_pool(size_t true_size)
+{
+    int order = 0;
+    while(order < MAX_BUDDY_ORDER+1)
+    {
+        if(true_size <= ((my_pow(2, order))*PAGE_SIZE))
+        {
+            return order;
+        }
+        order++;
+    }
+    printk("Failed to determine order, size of object: %lu\r\n", true_size);
+    return -1;
+}
+
+/* Returns a virtually continugous block of memory that is of size 2^n * 1k where n is the small order
+   in which req_size can fit into. This a buddy allocator. Largest memory allocation is 2^4*1024k
    Returns NULL if req_size bytes cannot be contiguously allocated.                                  */
-void* init_kmalloc(size_t req_size)
+void* kmalloc(size_t req_size)
 {
     void* return_addr = NULL;
-    int true_size = req_size + sizeof(struct Heap_Frame);
-    struct Heap_Frame* curr_frame = NULL;
-    if(k_heap_block.free_items.head == NULL) // first time mallocing or no items in list
-    {
-        add_pages_to_list(MB_TO_PAGE); // adds 1MB of bytes to pool
-    }
-    curr_frame = (struct Heap_Frame*) k_heap_block.free_items.head;
-    while(1) // TODO: break if ran out of memory
-    {
-        if(curr_frame->size >= true_size) // can fit the allocation
-        {
-            return divide_block(curr_frame); // divide the block and return the frame
-        }
-        if(curr_frame->curr.next == NULL) // nothing left to allocate, curr_frame->next
-        {
-            add_pages_to_list(MB_TO_PAGE); // adds 1MB of bytes to pool
-            if(curr_frame->curr.next == NULL) // debug
-            {
-                printk("ERROR: Curr_frame still NULL\r\n");
-                asm("hlt");
-            }
-        }
-        curr_frame = (struct Heap_Frame*) curr_frame->curr.next; // iterate to next node
-    }
+    size_t true_size = req_size + sizeof(struct Heap_Frame);
+    return_addr = buddy_find_home(k_heap.base, find_pool(true_size));
     return return_addr; // should always be NULL
+}
+
+/*  Prints the heap in a tree like structure*/
+void print_heap()
+{
+    struct Heap_Frame* curr = k_heap.base;
+    int i = 0;
+    int j = 0;
+    printk("\r\n|-------------| Heap Layout |-----------|\r\n\r\n");
+    for(i=0; i < k_heap.length; i++)
+    {
+        for(j=MAX_BUDDY_ORDER; j > curr->order; j--)
+        {
+            printk("<--");
+        }
+        debug_heap_frame(curr);
+        curr = (struct Heap_Frame*) (((uint64_t)curr) + ((my_pow(2, curr->order))* PAGE_SIZE));
+    }
+    printk("\r\n|---------------------------------------|\r\n");
+    return;
 }

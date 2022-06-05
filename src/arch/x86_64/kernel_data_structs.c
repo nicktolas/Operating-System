@@ -1,6 +1,12 @@
 #include "kernel_data_structs.h"
 #include "kernel_memory.h"
 
+/* ====================================================================
+
+                            Linked List
+
+   ==================================================================== */
+
 /* Initializes a Node for a list. Does not allocate the node*/
 void init_node(struct Node* node)
 {
@@ -109,4 +115,38 @@ void ll_del_node(struct Linked_List* ll, struct Node* req_node)
     ll_pop_node(ll, req_node);
     free_node(req_node);
     return;
+}
+
+/* ====================================================================
+
+                            Binary Tree
+
+   ==================================================================== */
+
+void init_tree_node(struct Tree_Node* curr)
+{
+    curr->left = NULL;
+    curr->right = NULL;
+    curr->parent = NULL;
+    curr->data = 0;
+    return;
+}
+
+void init_btree(struct Binary_Tree* bt)
+{
+    bt->root = NULL;
+    bt->length = 0;
+    return;
+}
+
+
+uint64_t my_pow(uint64_t base, uint64_t exp)
+{
+    uint64_t result = 1;
+    uint64_t i;
+    for(i=0; i < exp; i++)
+    {
+        result = result * base;
+    }
+    return result;
 }

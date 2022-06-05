@@ -85,7 +85,14 @@ void test_page_table()
     return;
 }
 
-void test_kernel_heap_allocation()
+void test_heap()
 {
+    print_heap();
+    kmalloc(420);
+    print_heap();
+    kmalloc(0x2000);
+    print_heap();
+    kmalloc(0x22000);
+    print_heap();
     return;
 }

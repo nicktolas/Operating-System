@@ -21,14 +21,13 @@ void kmain(void)
     init_physical_paging();
     init_page_tables();
     interrupts_init();
+    init_kernel_dynamic_structs();
     SER_init();
     keyboard_init();
     enable_int_irq();
     asm("STI"); // enable interrupts
 
-    
-
-    test_page_table();
+    test_heap();
     while(1)
     {
         asm("hlt");
