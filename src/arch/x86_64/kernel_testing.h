@@ -12,4 +12,7 @@ void test_page_table(void);
 void test_kernel_heap_allocation(void);
 
 void test_heap(void);
+
+void test_heap_kmalloc(void);
+
 #endif

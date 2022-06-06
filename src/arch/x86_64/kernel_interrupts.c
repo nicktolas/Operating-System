@@ -103,7 +103,7 @@ void gen_isr_handler(int irq_num, int error_code)
             break;
 
         case 14: //page fault
-            printk("\r\nPage Fault: %d\r\n", error_code);
+            // printk("\r\nPage Fault: %d\r\n", error_code);
             page_fault_isr(error_code);
             break;
         

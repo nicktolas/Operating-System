@@ -646,6 +646,14 @@ void page_fault_isr(int error_code)
     :
     :);
     // printk("Page Table 4 Address: %lx\r\nAddress that caused the fault: %lx\r\n", cr3, cr2);
+    // if((void*)cr2 == 0x0)
+    // {
+    //     printk("ERROR: NULL POINTER EXCEPTION\r\n");
+    //     while(1)
+    //     {
+    //         asm("hlt");
+    //     }
+    // }
     alloc_vaddr((void*)cr2); // allocate the page
     return;
 }
@@ -749,6 +757,7 @@ static void init_heap_frame(struct Heap_Frame* hf, int ord)
 {
     hf->allocated = 0;
     hf->order = ord;
+    hf->buddy = NULL;
     return;
 }
 
@@ -763,31 +772,33 @@ void init_kernel_heap()
 
 static void debug_heap_frame(struct Heap_Frame* hf)
 {
-    printk("Heap Frame %p: Allocated %d Order %d\r\n",(void*)hf, hf->allocated, hf->order);
+    printk("Heap Frame %p: Allocated %d Order %d Buddy %p\r\n",(void*)hf, hf->allocated, hf->order, hf->buddy);
     return;
 }
 
 
 
-/* Helper Function to create new memory blocks for a parent */
+/* Helper Function to create new memory blocks for a parent. left child is always the buddy*/
 static int create_buddy(struct Heap_Frame* parent)
 {
     int new_order = parent->order - 1;
-    long int address_offset;
+    // long int address_offset;
     struct Heap_Frame* rchild;
     if(new_order < 0) // cant go below 0
     {
         return -1;
     }
     rchild = (struct Heap_Frame*) (((uint64_t)parent) + ((my_pow(2, new_order))* PAGE_SIZE));
-    address_offset = (my_pow(2, new_order))* PAGE_SIZE;
+    // address_offset = (my_pow(2, new_order))* PAGE_SIZE;
     init_heap_frame( (struct Heap_Frame*) ((uint64_t)parent), new_order);                                   // l child frame
     init_heap_frame( rchild, parent->order); // r child frame
     k_heap.length++;
-    printk("\tAddress Offset should be %lx\r\n \r\n", address_offset);
-    printk("\tSplit L child %p into order %d\r\n", (void*)parent, parent->order);
-    printk("\tSplit R child %p into order %d\r\n", (void*)rchild, rchild->order);
-    return parent->order;
+    parent->buddy = rchild; // setup buddy system
+    rchild->buddy = parent;
+    // printk("\tAddress Offset should be %lx\r\n \r\n", address_offset);
+    // printk("\tSplit L child %p into order %d\r\n", (void*)parent, parent->order);
+    // printk("\tSplit R child %p into order %d\r\n", (void*)rchild, rchild->order);
+    return parent->order; for(i=0; i < 35000; i++)
 }
 
 /* Iterates over the memory space until it finds a fit for the allocation. 
@@ -797,13 +808,18 @@ static int create_buddy(struct Heap_Frame* parent)
 static void* buddy_find_home(struct Heap_Frame* parent, int desired_order)
 {
     void* found_addr = NULL;
-    printk("Finding Home: Parent %p of Order %d, with desired order as %d\r\n", (void*)parent, parent->order, desired_order);
+    if(((uint64_t)k_heap.base) + ((my_pow(2, MAX_BUDDY_ORDER))* PAGE_SIZE) <= (uint64_t)parent)
+    {
+        printk("ERROR: No Space in Heap for object\r\n");
+        return NULL;
+    }
+    // printk("Finding Home: Parent %p of Order %d, with desired order as %d\r\n", (void*)parent, parent->order, desired_order);
     // parent can fit and is unallocated
     if((parent->order == desired_order) && (parent->allocated == 0))
     {
         parent->allocated = 1;
-        found_addr = (void*)(parent++); // returns the address at end of pointer
-        printk("Found a fit of order %d at %p with final addr as %p\r\n", parent->order, (void*)parent, found_addr);
+        found_addr = (void*)((uint64_t)parent + sizeof(struct Heap_Frame)); // returns the address at end of pointer
+        // printk("Found a fit of order %d at %p with final addr as %p\r\n", parent->order, (void*)parent, found_addr);
         return found_addr;
     }
     // current block can be split into smaller blocks
@@ -818,7 +834,7 @@ static void* buddy_find_home(struct Heap_Frame* parent, int desired_order)
         // block is split into smaller one, call this function again
         return buddy_find_home(parent, desired_order);
     }
-    printk("Walking Heap: Order %d with offset %lx\r\n",parent->order, ((my_pow(2, parent->order))* PAGE_SIZE) );
+    // printk("Walking Heap: Order %d with offset %lx\r\n",parent->order, ((my_pow(2, parent->order))* PAGE_SIZE) );
     return buddy_find_home( (struct Heap_Frame*) (((uint64_t)parent) + ((my_pow(2, parent->order))* PAGE_SIZE)) , desired_order);
 }
 
@@ -849,6 +865,84 @@ void* kmalloc(size_t req_size)
     return return_addr; // should always be NULL
 }
 
+/* Loops through addresses in range and frees the physical pages mapped to an address.
+   starts at offset 1 and the first page holds frame information                       */
+void free_vaddr_pages(uint64_t vaddr, uint64_t num_pages)
+{
+    int i = 0;
+    for(i=1; i < num_pages; i++)
+    {
+        free_vaddr((void*) (vaddr + (i*PAGE_SIZE)));
+    }
+    return;
+}
+
+/* Prevents fragmentation by combining open address space blocks*/
+struct Heap_Frame* merge_buddies(struct Heap_Frame* hf)
+{
+    struct Heap_Frame* smaller_frame = NULL;
+    // printk("Merging Frame: ");
+    // debug_heap_frame(hf);
+    if(hf->order >= MAX_BUDDY_ORDER)
+    {
+        hf->buddy = NULL;
+        return hf;
+    }
+    if(hf->buddy == NULL) // last node in heap
+    {
+        return hf;
+    }
+    if(hf->order == hf->buddy->order) // able to be merged
+    {
+        // blocks are both free
+        if((hf->allocated == 0) && hf->buddy->allocated == 0)
+        {
+            if((uint64_t)hf > (uint64_t)hf->buddy) // determine which one is smaller
+            {
+                smaller_frame = hf->buddy;
+                memset((void*)hf, 0, sizeof(struct Heap_Frame)); //remove old state
+                free_vaddr(hf); // frees the page for the old vaddr
+                smaller_frame->buddy = (struct Heap_Frame*) (((uint64_t)smaller_frame) + ((my_pow(2, smaller_frame->order+1))* PAGE_SIZE));
+            }
+            else
+            {
+                smaller_frame = hf;
+                memset((void*)hf->buddy, 0, sizeof(struct Heap_Frame)); //remove old state
+                free_vaddr(hf->buddy); // frees the page for the old vaddr
+                smaller_frame->buddy = (struct Heap_Frame*) (((uint64_t)smaller_frame) + ((my_pow(2, smaller_frame->order))* PAGE_SIZE));
+            }
+            smaller_frame->order++;
+            if((uint64_t)smaller_frame->buddy >= ((uint64_t)k_heap.base + ((my_pow(2, MAX_BUDDY_ORDER))* PAGE_SIZE)))
+            {
+                smaller_frame->buddy = NULL;
+            }
+            // printk("\tMerged Frames: ");
+            // debug_heap_frame(smaller_frame);
+            k_heap.length--;
+            return merge_buddies(smaller_frame);
+        }
+    }
+    return hf;
+}
+
+/* Frees the address pointed to by vaddr from the heap */
+void kfree(void* vaddr)
+{
+    struct Heap_Frame* curr_frame = (struct Heap_Frame*)((uint64_t)vaddr - sizeof(struct Heap_Frame));
+    // printk("Looking to free vaddr %p\r\n", (void*)curr_frame);
+    // debug_heap_frame(curr_frame);
+    if(curr_frame->allocated == 0)
+    {
+        printk("ERROR: tried to free frame that isnt allocated\r\n");
+        return;
+    }
+    curr_frame->allocated = 0;
+    free_vaddr_pages((uint64_t)curr_frame, my_pow(2, curr_frame->order));
+    // combine with buddy
+    merge_buddies(curr_frame);
+    return;
+}
+
 /*  Prints the heap in a tree like structure*/
 void print_heap()
 {
@@ -860,7 +954,7 @@ void print_heap()
     {
         for(j=MAX_BUDDY_ORDER; j > curr->order; j--)
         {
-            printk("<--");
+            printk("<-");
         }
         debug_heap_frame(curr);
         curr = (struct Heap_Frame*) (((uint64_t)curr) + ((my_pow(2, curr->order))* PAGE_SIZE));

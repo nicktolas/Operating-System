@@ -85,14 +85,70 @@ void test_page_table()
     return;
 }
 
+
+
+// tries to allocate a ton of pages
+void test_heap_kmalloc()
+{
+    void** test_pages = (void*) kmalloc(sizeof(void*) * 35000); // aprox 32k pages avail in our system
+    int i = 0;
+    int max_page = 0;
+    int bytes_to_allocate = 420;
+    printk("Starting Kmalloc stress test\r\n");
+    print_heap();
+    for(i=0; i < 35000; i++)
+    {
+        test_pages[i] = kmalloc(bytes_to_allocate);
+        if(test_pages[i] == NULL)
+        {
+            printk(" ----> Was able to allocate %d pages", i);
+            max_page = i;
+            break;
+        }
+        printk("index: %d Address %p\r\n", i, test_pages[i]);
+        if(i == 255)
+        {
+            printk("255\r\n");
+        }
+        
+    }
+    printk("Writing to the allocated pages\r\n");
+    for(i=0; i < max_page; i++)
+    {
+        memset(test_pages[i], i, bytes_to_allocate);
+    }
+    printk("Sucessfully wrote to all the pages");
+}
+
 void test_heap()
 {
     print_heap();
-    kmalloc(420);
+    test_heap_kmalloc();
+    // void* test_ptrs[10000] = {0};
+    // printk("why must it end this way?\r\n");
     print_heap();
-    kmalloc(0x2000);
-    print_heap();
-    kmalloc(0x22000);
-    print_heap();
-    return;
+    // test_ptrs[0] = kmalloc(32000); // order 3
+    // // print_heap();
+    // test_ptrs[1] = kmalloc(0x2000); //order 2
+    // // print_heap();
+    // test_ptrs[2] = kmalloc(420); // order 0
+    // // print_heap();
+    // test_ptrs[3] = kmalloc(420); // order 0
+    // // print_heap();
+    // test_ptrs[4] = kmalloc(420); // order 0
+    // test_ptrs[5] = kmalloc(420); // order 0 // full heap
+    // print_heap();
+    // kfree(test_ptrs[4]);
+    // // print_heap();
+    // kfree(test_ptrs[5]);
+    // print_heap();
+    // kfree(test_ptrs[2]);
+    // kfree(test_ptrs[3]);
+    // print_heap();
+    // kfree(test_ptrs[1]);
+    // print_heap();
+    // kfree(test_ptrs[0]);
+    // // test_ptrs[6] = kmalloc(420); // should pass now
+    // print_heap();
+    // return;
 }

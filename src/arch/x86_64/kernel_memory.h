@@ -19,12 +19,13 @@
 #define PT3_ADDR_OFFSET 1073741824
 #define PT4_ADDR_OFFSET 549755813888
 #define MB_TO_PAGE 1000
-#define MAX_BUDDY_ORDER 4
+#define MAX_BUDDY_ORDER 10
 
 struct Heap_Frame
 {
     int order;
     int allocated;
+    struct Heap_Frame* buddy;
 }__attribute__((packed));
 
 struct Max_Page_Info
@@ -102,6 +103,7 @@ void init_kernel_dynamic_structs(void);
 void init_kernel_stacks();
 void init_kernel_heap();
 void* kmalloc(size_t req_size);
+void kfree(void* vaddr);
 void print_heap();
 
 //debug functions

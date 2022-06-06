@@ -15,7 +15,7 @@ void kmain(void)
     // infinite loop for debugging purposes
     int hold = 1;
     while(hold){;}
-    VGA_clear();
+    // VGA_clear();
     gdt_assign_segments();
     init_multiboot();
     init_physical_paging();

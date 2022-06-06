@@ -28,7 +28,7 @@ int printk(const char *fmt, ...)
             switch(fmt[i])
             {
                 case '%': // %
-                    VGA_display_char('%');
+                    // VGA_display_char('%');
                     break;
                 case 'd': // int
                     print_int((int) va_arg(args_list, int), 10);
@@ -94,9 +94,9 @@ int printk(const char *fmt, ...)
                     }
                     break;
                 default:
-                    VGA_display_str("\r\nERROR: Unknown printk option: ");
-                    VGA_display_char(fmt[i]);
-                    VGA_display_str("\r\n");
+                    // VGA_display_str("\r\nERROR: Unknown printk option: ");
+                    // VGA_display_char(fmt[i]);
+                    // VGA_display_str("\r\n");
                     va_end(args_list);
                     return_val = -1;
                     break;
@@ -104,7 +104,7 @@ int printk(const char *fmt, ...)
         }
         else
         {
-            VGA_display_char(fmt[i]);
+            // VGA_display_char(fmt[i]);
             SER_write(&fmt[i], 1);
         }
         if(return_val != 0)
@@ -193,22 +193,22 @@ void print_str(const char * provided_string)
 
 void print_uchar(unsigned char c)
 {
-    VGA_display_char(c);
+    // VGA_display_char(c);
     SER_write((char*) &c, 1);
     return;
 }
 
 void print_hex_prefix(void)
 {
-    VGA_display_char('0');
-    VGA_display_char('x');
+    // VGA_display_char('0');
+    // VGA_display_char('x');
     SER_write("0x", strlen("0x"));
     return;
 }
 
 void display_string_wrapper(const char* string)
 {
-    VGA_display_str(string);
+    // VGA_display_str(string);
     SER_write(string, strlen(string));
     return;
 }
