@@ -93,7 +93,7 @@ void test_heap_kmalloc()
     void** test_pages = (void*) kmalloc(sizeof(void*) * 35000); // aprox 32k pages avail in our system
     int i = 0;
     int max_page = 0;
-    int bytes_to_allocate = 420;
+    int bytes_to_allocate = 5000;
     printk("Starting Kmalloc stress test\r\n");
     print_heap();
     for(i=0; i < 35000; i++)

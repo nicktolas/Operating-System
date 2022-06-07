@@ -645,15 +645,15 @@ void page_fault_isr(int error_code)
     :"=r"(cr2)
     :
     :);
-    // printk("Page Table 4 Address: %lx\r\nAddress that caused the fault: %lx\r\n", cr3, cr2);
-    // if((void*)cr2 == 0x0)
-    // {
-    //     printk("ERROR: NULL POINTER EXCEPTION\r\n");
-    //     while(1)
-    //     {
-    //         asm("hlt");
-    //     }
-    // }
+    printk("Page Fault: %d \r\n\tPT4: %lx\r\n\tAddress that caused the fault: %lx\r\n", error_code, cr3, cr2);
+    if((void*)cr2 == 0x0)
+    {
+        printk("ERROR: NULL POINTER EXCEPTION\r\n");
+        while(1)
+        {
+            asm("hlt");
+        }
+    }
     alloc_vaddr((void*)cr2); // allocate the page
     return;
 }
@@ -798,7 +798,7 @@ static int create_buddy(struct Heap_Frame* parent)
     // printk("\tAddress Offset should be %lx\r\n \r\n", address_offset);
     // printk("\tSplit L child %p into order %d\r\n", (void*)parent, parent->order);
     // printk("\tSplit R child %p into order %d\r\n", (void*)rchild, rchild->order);
-    return parent->order; for(i=0; i < 35000; i++)
+    return parent->order;
 }
 
 /* Iterates over the memory space until it finds a fit for the allocation. 
