@@ -93,7 +93,7 @@ void test_heap_kmalloc()
     void** test_pages = (void*) kmalloc(sizeof(void*) * 35000); // aprox 32k pages avail in our system
     int i = 0;
     int max_page = 0;
-    int bytes_to_allocate = 5000;
+    int bytes_to_allocate = 200;
     printk("Starting Kmalloc stress test\r\n");
     print_heap();
     for(i=0; i < 35000; i++)
@@ -105,11 +105,11 @@ void test_heap_kmalloc()
             max_page = i;
             break;
         }
-        printk("index: %d Address %p\r\n", i, test_pages[i]);
-        if(i == 255)
-        {
-            printk("255\r\n");
-        }
+        // printk("index: %d Address %p\r\n", i, test_pages[i]);
+        // if(i == 255)
+        // {
+        //     printk("255\r\n");
+        // }
         
     }
     printk("Writing to the allocated pages\r\n");
@@ -117,7 +117,21 @@ void test_heap_kmalloc()
     {
         memset(test_pages[i], i, bytes_to_allocate);
     }
-    printk("Sucessfully wrote to all the pages");
+    printk("Sucessfully wrote to all the pages\r\nStarting to free even pages");
+    // print_heap();
+    for(i=0; i< max_page; i++)
+    {
+        kfree(test_pages[i]);
+    }
+    // print_heap();
+    // for(i=1; i< max_page; i = i + 2)
+    // {
+    //     kfree(test_pages[i]);
+    // }
+    // kfree(test_pages[1]);
+    // kfree(test_pages[3]);
+    kfree((void*)test_pages);
+    print_heap();
 }
 
 void test_heap()
@@ -126,7 +140,7 @@ void test_heap()
     test_heap_kmalloc();
     // void* test_ptrs[10000] = {0};
     // printk("why must it end this way?\r\n");
-    print_heap();
+    // print_heap();
     // test_ptrs[0] = kmalloc(32000); // order 3
     // // print_heap();
     // test_ptrs[1] = kmalloc(0x2000); //order 2

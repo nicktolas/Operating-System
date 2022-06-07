@@ -645,7 +645,7 @@ void page_fault_isr(int error_code)
     :"=r"(cr2)
     :
     :);
-    printk("Page Fault: %d \r\n\tPT4: %lx\r\n\tAddress that caused the fault: %lx\r\n", error_code, cr3, cr2);
+    // printk("Page Fault: %d \r\n\tPT4: %lx\r\n\tAddress that caused the fault: %lx\r\n", error_code, cr3, cr2);
     if((void*)cr2 == 0x0)
     {
         printk("ERROR: NULL POINTER EXCEPTION\r\n");
@@ -808,34 +808,42 @@ static int create_buddy(struct Heap_Frame* parent)
 static void* buddy_find_home(struct Heap_Frame* parent, int desired_order)
 {
     void* found_addr = NULL;
-    if(((uint64_t)k_heap.base) + ((my_pow(2, MAX_BUDDY_ORDER))* PAGE_SIZE) <= (uint64_t)parent)
+    struct Heap_Frame* curr = parent;
+    while(1)
     {
-        printk("ERROR: No Space in Heap for object\r\n");
-        return NULL;
-    }
-    // printk("Finding Home: Parent %p of Order %d, with desired order as %d\r\n", (void*)parent, parent->order, desired_order);
-    // parent can fit and is unallocated
-    if((parent->order == desired_order) && (parent->allocated == 0))
-    {
-        parent->allocated = 1;
-        found_addr = (void*)((uint64_t)parent + sizeof(struct Heap_Frame)); // returns the address at end of pointer
-        // printk("Found a fit of order %d at %p with final addr as %p\r\n", parent->order, (void*)parent, found_addr);
-        return found_addr;
-    }
-    // current block can be split into smaller blocks
-    if ((parent->order > desired_order) && (parent->allocated == 0))
-    {
-        if(create_buddy(parent) < 0)
+        if(((uint64_t)k_heap.base) + ((my_pow(2, MAX_BUDDY_ORDER))* PAGE_SIZE) <= (uint64_t)curr)
         {
-            printk("Unable to split parent into smaller block\r\n");
-            while(1)
-                asm("hlt;");
+            printk("ERROR: No Space in Heap for object\r\n");
+            return NULL;
         }
-        // block is split into smaller one, call this function again
-        return buddy_find_home(parent, desired_order);
+        // printk("Finding Home: Parent %p of Order %d, with desired order as %d\r\n", (void*)parent, parent->order, desired_order);
+        // parent can fit and is unallocated
+        if((curr->order == desired_order) && (curr->allocated == 0))
+        {
+            curr->allocated = 1;
+            found_addr = (void*)((uint64_t)curr + sizeof(struct Heap_Frame)); // returns the address at end of pointer
+            // printk("Found a fit of order %d at %p with final addr as %p\r\n", parent->order, (void*)parent, found_addr);
+            return found_addr;
+        }
+        // current block can be split into smaller blocks
+        if ((curr->order > desired_order) && (curr->allocated == 0))
+        {
+            if(create_buddy(curr) < 0)
+            {
+                printk("Unable to split parent into smaller block\r\n");
+                while(1)
+                    asm("hlt;");
+            }
+            // block is split into smaller one, call this function again
+            // curr = parent;
+        }
+        else // walk heap
+        {
+            curr = (struct Heap_Frame*) (((uint64_t)curr) + ((my_pow(2, curr->order))* PAGE_SIZE));
+        }
     }
     // printk("Walking Heap: Order %d with offset %lx\r\n",parent->order, ((my_pow(2, parent->order))* PAGE_SIZE) );
-    return buddy_find_home( (struct Heap_Frame*) (((uint64_t)parent) + ((my_pow(2, parent->order))* PAGE_SIZE)) , desired_order);
+    // return buddy_find_home( (struct Heap_Frame*) (((uint64_t)parent) + ((my_pow(2, parent->order))* PAGE_SIZE)) , desired_order);
 }
 
 /* Determines the pool size needed for the object itself*/
@@ -879,6 +887,70 @@ void free_vaddr_pages(uint64_t vaddr, uint64_t num_pages)
 
 /* Prevents fragmentation by combining open address space blocks*/
 struct Heap_Frame* merge_buddies(struct Heap_Frame* hf)
+{
+    struct Heap_Frame* smaller_frame = NULL;
+    struct Heap_Frame* curr = hf;
+    // printk("Merging Frame: ");
+    // debug_heap_frame(hf);
+    while(1)
+    {
+        if(curr->order >= MAX_BUDDY_ORDER)
+        {
+            curr->buddy = NULL;
+            return curr;
+        }
+        if(curr->buddy == NULL) // last node in heap
+        {
+            return curr;
+        }
+        if(curr->order == curr->buddy->order) // able to be merged
+        {
+            // blocks are both free
+            if((curr->allocated == 0) && (curr->buddy->allocated == 0))
+            {
+                if((uint64_t)curr > (uint64_t)curr->buddy) // cur is right child
+                {
+                    smaller_frame = curr->buddy;
+                    memset((void*)curr, 0, sizeof(struct Heap_Frame)); //remove old state
+                    free_vaddr(curr); // frees the page for the old vaddr
+                    smaller_frame->buddy = (struct Heap_Frame*) (((uint64_t)smaller_frame) + ((my_pow(2, smaller_frame->order+1))* PAGE_SIZE));
+                }
+                else // curr is left child
+                {
+                    smaller_frame = curr;
+                    memset((void*)curr->buddy, 0, sizeof(struct Heap_Frame)); //remove old state
+                    free_vaddr(curr->buddy); // frees the page for the old vaddr
+                    smaller_frame->buddy = (struct Heap_Frame*) (((uint64_t)smaller_frame) + ((my_pow(2, smaller_frame->order+1))* PAGE_SIZE));
+                }
+                smaller_frame->order++;
+                if((uint64_t)smaller_frame->buddy >= ((uint64_t)k_heap.base + ((my_pow(2, MAX_BUDDY_ORDER))* PAGE_SIZE)))
+                {
+                    smaller_frame->buddy = NULL;
+                }
+                // printk("\tMerged Frames: ");
+                // debug_heap_frame(smaller_frame);
+                k_heap.length--;
+                curr = smaller_frame;
+                smaller_frame = (struct Heap_Frame*) (((uint64_t)curr) - ((my_pow(2, curr->order))* PAGE_SIZE));
+                if((uint64_t)(smaller_frame->buddy) == ((uint64_t) curr))
+                {
+                    curr->buddy = smaller_frame;
+                }
+            }
+            else
+            {
+                return curr;
+            }
+        }
+        else
+        {
+            return curr;
+        }
+    }
+}
+
+/* Prevents fragmentation by combining open address space blocks*/
+struct Heap_Frame* recurse_merge_buddies(struct Heap_Frame* hf)
 {
     struct Heap_Frame* smaller_frame = NULL;
     // printk("Merging Frame: ");
